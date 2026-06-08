@@ -1,0 +1,11 @@
+/**
+ * ⚠️ DEPRECATED: Page Spacing
+ * 
+ * This file previously contained manual padding overrides (using !important) 
+ * to handle the fixed header spacing.
+ * 
+ * This logic has been moved to a cleaner architecture in App.css using 
+ * the .page-content-wrapper class.
+ * 
+ * DO NOT ADD STYLES HERE.
+ */
