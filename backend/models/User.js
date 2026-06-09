@@ -14,11 +14,30 @@ const userSchema = new mongoose.Schema({
         required: [true, "Password is required"],
         minlength: [6, "Password must be at least 6 characters"]
     },
-    role: { // Updated enum to include the four new roles
+    userClass: {
         type: String,
-        enum: ['admin', 'branch manager', 'volunteer', 'refugee'],
-        default: 'volunteer'
+        enum: ['Admin', 'General User'],
+        default: 'General User'
     },
+    roles: {
+        type: [String],
+        default: ['Victim']
+    },
+    verification: {
+        status: {
+            type: String,
+            enum: ['None', 'Pending', 'Verified', 'Rejected'],
+            default: 'None'
+        },
+        details: { type: String }
+    },
+    roleAuditLog: [{
+        action: String,
+        role: String,
+        changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        timestamp: { type: Date, default: Date.now },
+        reason: String
+    }],
 
     // --- Personal Information ---
     firstName: { type: String, required: true, trim: true },
@@ -74,7 +93,9 @@ export const SEED_USERS = [
     {
         username: 'admin@punjab.gov.in',
         password: 'AdminPassword123',
-        role: 'admin',
+        userClass: 'Admin',
+        roles: ['Super Admin'],
+        verification: { status: 'Verified' },
         firstName: 'Rajesh',
         lastName: 'Kumar',
         country: 'India',
@@ -88,7 +109,9 @@ export const SEED_USERS = [
     {
         username: 'branchmanager@punjab.gov.in',
         password: 'BranchManager123',
-        role: 'branch manager',
+        userClass: 'Admin',
+        roles: ['Branch Manager'],
+        verification: { status: 'Verified' },
         firstName: 'Preet',
         lastName: 'Singh',
         country: 'India',
@@ -102,7 +125,8 @@ export const SEED_USERS = [
     {
         username: 'volunteer@ngo.org',
         password: 'VolunteerPass123',
-        role: 'volunteer',
+        userClass: 'General User',
+        roles: ['Volunteer'],
         firstName: 'Simran',
         lastName: 'Kaur',
         country: 'India',
@@ -116,7 +140,8 @@ export const SEED_USERS = [
     {
         username: 'refugee@punjab.in',
         password: 'RefugeePass123',
-        role: 'refugee',
+        userClass: 'General User',
+        roles: ['Victim'],
         firstName: 'Harpreet',
         lastName: 'Sharma',
         country: 'India',

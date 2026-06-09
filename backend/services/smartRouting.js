@@ -1,4 +1,6 @@
 import fetch from 'node-fetch';
+import { haversineDistance } from '../utils/geo.js';
+import { Location } from '../models/Inventory.js';
 
 /**
  * AI Agent 3: Smart Routing & Re-routing
@@ -93,36 +95,33 @@ class SmartRoutingAgent {
     }
 
     /**
-     * Find nearest response centers with required resources
+     * Find nearest response centers with required resources.
+     * Queries real Location documents from the database, sorted by proximity.
      */
     async findNearestResponseCenters(location, requiredResources) {
-        // In production, query from database
-        const centers = [
-            {
-                id: 'center_1',
-                name: 'Emergency Response Center Alpha',
-                location: { lat: location.lat + 0.01, lon: location.lon + 0.01 },
-                resources: ['Medical Kit', 'Rescue Team', 'Communication Equipment'],
-                vehicles: ['ambulance', 'fire_truck', 'rescue_vehicle'],
-                capacity: 'high'
+        let dbLocations = [];
+        try {
+            dbLocations = await Location.find({});
+        } catch (err) {
+            console.warn('⚠️ SmartRouting: Could not query Location from DB:', err.message);
+        }
+
+        // Build center objects from DB records
+        const centers = dbLocations.map(loc => ({
+            id: loc._id.toString(),
+            name: loc.name,
+            location: {
+                lat: loc.coordinates?.lat ?? 0,
+                lon: loc.coordinates?.lon ?? 0
             },
-            {
-                id: 'center_2',
-                name: 'Fire Station Beta',
-                location: { lat: location.lat - 0.01, lon: location.lon - 0.01 },
-                resources: ['Fire Extinguisher', 'Water', 'Rescue Team'],
-                vehicles: ['fire_truck', 'water_tanker'],
-                capacity: 'medium'
-            },
-            {
-                id: 'center_3',
-                name: 'Medical Response Unit Gamma',
-                location: { lat: location.lat + 0.005, lon: location.lon - 0.005 },
-                resources: ['Medical Kit', 'Ambulance', 'Medical Team'],
-                vehicles: ['ambulance', 'medical_van'],
-                capacity: 'high'
-            }
-        ];
+            resources: loc.availableResources || [],
+            vehicles: loc.vehicles || [],
+            capacity: loc.capacity || 'medium'
+        }));
+
+        if (centers.length === 0) {
+            console.warn('⚠️ SmartRouting: No locations in DB, routing will use fallback.');
+        }
 
         // Calculate distances and filter by resources
         const centersWithDistance = centers.map(center => ({
@@ -401,14 +400,7 @@ class SmartRoutingAgent {
     }
 
     calculateDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return R * c;
+        return haversineDistance(lat1, lon1, lat2, lon2);
     }
 
     checkResourceAvailability(centerResources, requiredResources) {

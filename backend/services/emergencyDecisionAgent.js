@@ -418,69 +418,84 @@ Respond with a JSON object containing:
     }
 
     /**
-     * Execute the dispatch plan
+     * Execute the dispatch plan.
+     *
+     * All inventory deductions and the Emergency status update run inside a
+     * single MongoDB transaction. If anything fails mid-loop the entire
+     * operation rolls back — no partial stock deductions without a matching
+     * dispatch record.
+     *
+     * Requires a replica set (Atlas provides this automatically; for local dev
+     * start mongod with --replSet rs0 or use mongodb-memory-server).
      */
     async executeDispatch(emergencyId, dispatchPlan) {
+        const session = await mongoose.startSession();
         try {
             console.log(`🚀 Executing autonomous dispatch for ${emergencyId}`);
 
-            // Update inventory quantities
-            const dispatchResults = [];
-            for (const allocation of dispatchPlan.resourceAllocations) {
-                const item = await InventoryItem.findById(allocation.itemId);
-                if (item && item.currentStock >= allocation.quantity) {
-                    item.currentStock -= allocation.quantity;
-                    await item.save();
+            let dispatchResults = [];
 
-                    dispatchResults.push({
-                        itemName: allocation.itemName,
-                        quantity: allocation.quantity,
-                        dispatched: true,
-                        remainingStock: item.currentStock
-                    });
-                } else {
-                    dispatchResults.push({
-                        itemName: allocation.itemName,
-                        quantity: allocation.quantity,
-                        dispatched: false,
-                        reason: "Insufficient stock"
-                    });
+            await session.withTransaction(async () => {
+                dispatchResults = [];
+
+                // Deduct inventory — all inside the same session
+                for (const allocation of dispatchPlan.resourceAllocations) {
+                    const item = await InventoryItem.findById(allocation.itemId).session(session);
+                    if (item && item.currentStock >= allocation.quantity) {
+                        item.currentStock -= allocation.quantity;
+                        await item.save({ session });
+
+                        dispatchResults.push({
+                            itemName: allocation.itemName,
+                            quantity: allocation.quantity,
+                            dispatched: true,
+                            remainingStock: item.currentStock
+                        });
+                    } else {
+                        dispatchResults.push({
+                            itemName: allocation.itemName,
+                            quantity: allocation.quantity,
+                            dispatched: false,
+                            reason: "Insufficient stock"
+                        });
+                    }
                 }
-            }
 
-            // Update emergency status
-            const emergency = await Emergency.findOne({ emergencyId });
-            if (emergency) {
-                emergency.status = 'dispatched';
-                emergency.dispatchDetails = {
-                    dispatchedAt: new Date(),
-                    dispatchedBy: new mongoose.Types.ObjectId(), // System dispatch
-                    centers: [{
-                        centerName: "Autonomous AI Dispatch",
-                        resources: dispatchPlan.resourceAllocations.map(alloc => ({
-                            name: alloc.itemName,
-                            quantity: alloc.quantity,
-                            unit: "units"
-                        }))
-                    }],
-                    totalResources: dispatchPlan.resourceAllocations.reduce((acc, alloc) => {
-                        acc[alloc.itemName] = alloc.quantity;
-                        return acc;
-                    }, {}),
-                    estimatedArrival: dispatchPlan.estimatedResponseTime?.estimatedArrival || new Date(Date.now() + (dispatchPlan.estimatedResponseTime?.minutes || 30) * 60000),
-                    deliveryNotes: "Autonomous dispatch by AI Emergency Decision Agent"
-                };
+                // Update emergency status in the same transaction
+                const emergency = await Emergency.findOne({ emergencyId }).session(session);
+                if (emergency) {
+                    emergency.status = 'dispatched';
+                    emergency.dispatchDetails = {
+                        dispatchedAt: new Date(),
+                        dispatchedBy: new mongoose.Types.ObjectId(), // System dispatch
+                        centers: [{
+                            centerName: "Autonomous AI Dispatch",
+                            resources: dispatchPlan.resourceAllocations.map(alloc => ({
+                                name: alloc.itemName,
+                                quantity: alloc.quantity,
+                                unit: "units"
+                            }))
+                        }],
+                        totalResources: dispatchPlan.resourceAllocations.reduce((acc, alloc) => {
+                            acc[alloc.itemName] = alloc.quantity;
+                            return acc;
+                        }, {}),
+                        estimatedArrival: dispatchPlan.estimatedResponseTime?.estimatedArrival
+                            || new Date(Date.now() + (dispatchPlan.estimatedResponseTime?.minutes || 30) * 60000),
+                        deliveryNotes: "Autonomous dispatch by AI Emergency Decision Agent"
+                    };
 
-                emergency.timeline.push({
-                    status: 'dispatched',
-                    timestamp: new Date(),
-                    notes: `Autonomous dispatch executed by AI agent. Priority: ${dispatchPlan.priority}`
-                });
+                    emergency.timeline.push({
+                        status: 'dispatched',
+                        timestamp: new Date(),
+                        notes: `Autonomous dispatch executed by AI agent. Priority: ${dispatchPlan.priority}`
+                    });
 
-                await emergency.save();
-            }
+                    await emergency.save({ session });
+                }
+            });
 
-            // Notify Team
+            // Notify team outside the transaction (network I/O shouldn't hold a DB lock)
             const NotificationService = (await import('./notificationService.js')).default;
             await NotificationService.notifyDispatchTeam(dispatchPlan);
 
@@ -488,7 +503,8 @@ Respond with a JSON object containing:
                 success: true,
                 dispatchResults,
                 totalItemsDispatched: dispatchResults.filter(r => r.dispatched).length,
-                estimatedArrival: dispatchPlan.estimatedResponseTime?.estimatedArrival || new Date(Date.now() + (dispatchPlan.estimatedResponseTime?.minutes || 30) * 60000)
+                estimatedArrival: dispatchPlan.estimatedResponseTime?.estimatedArrival
+                    || new Date(Date.now() + (dispatchPlan.estimatedResponseTime?.minutes || 30) * 60000)
             };
 
         } catch (error) {
@@ -497,6 +513,8 @@ Respond with a JSON object containing:
                 success: false,
                 error: error.message
             };
+        } finally {
+            session.endSession();
         }
     }
 

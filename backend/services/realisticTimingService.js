@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import Groq from 'groq-sdk';
+import { haversineDistance } from '../utils/geo.js';
 
 /**
  * Realistic Timing Service
@@ -434,6 +435,11 @@ Consider Punjab's road conditions, traffic patterns, and emergency response capa
         // Add preparation time
         totalMinutes += emergencyFactors.preparationTime;
 
+        // Cap at 4× base route duration to prevent compounded-multiplier blow-ups.
+        // (e.g. evening rush + Ludhiana + earthquake + wedding season can stack to ~6×)
+        const MAX_MULTIPLIER = 4;
+        totalMinutes = Math.min(totalMinutes, routeData.duration * MAX_MULTIPLIER);
+
         // Round to realistic precision
         totalMinutes = Math.round(totalMinutes);
 
@@ -520,14 +526,7 @@ Consider Punjab's road conditions, traffic patterns, and emergency response capa
      * Calculate Haversine distance
      */
     calculateHaversineDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371; // Earth's radius in km
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return R * c;
+        return haversineDistance(lat1, lon1, lat2, lon2);
     }
 
     /**

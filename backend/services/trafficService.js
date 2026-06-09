@@ -170,4 +170,4 @@ class TrafficService {
     }
 }
 
-export default TrafficService;
+export default new TrafficService();

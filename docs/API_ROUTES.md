@@ -1,193 +1,354 @@
 # API Routes Documentation
 
-## Overview
-AidFlow backend exposes RESTful APIs organized into route modules for emergency management, disaster tracking, inventory, and AI agents.
+This document provides a comprehensive reference of all API endpoints exposed by the AidFlow backend server, organized by their respective modules.
 
 ---
 
-## Authentication Routes (`/api/register`, `/api/login`)
-**Location:** `backend/server.js`
+## 🔐 Global Middlewares & Authentication
 
-- **POST /api/register** - User registration (creates User model)
-- **POST /api/login** - User authentication (returns JWT token)
-
-**Relationships:**
-- Creates `User` model entries
-- Token used for protected routes via `protect` middleware
+Most routes are protected by authentication and Role-Based Access Control (RBAC) middlewares defined in [auth.js](file:///d:/AidFlow/backend/middleware/auth.js):
+- **`protect`**: Verifies the `Authorization: Bearer <token>` header contains a valid JWT.
+- **`authorize(...roles)`**: Restricts access to specific user roles (`admin`, `branch manager`, `volunteer`, `affected citizen`).
 
 ---
 
-## Emergency Routes (`/api/emergency/*`)
-**Location:** `backend/routes/emergency.js`
+## 1. Authentication Routes
 
-### Core Emergency Management
-- **POST /api/emergency/request** - Submit emergency request
-  - Uses `EmergencyAIAgent` (Agent 1) for analysis
-  - Creates `Emergency` model
-  - Reserves inventory resources automatically
-  - Returns emergency ID and AI analysis
+**File Location:** [server.js](file:///d:/AidFlow/backend/server.js)  
+**Base Path:** `/api`
 
-- **GET /api/emergency/status/:emergencyId** - Get emergency status
-- **GET /api/emergency/active** - List all active emergencies
-- **PUT /api/emergency/update/:emergencyId** - Update emergency status
-- **GET /api/emergency/analytics** - Emergency statistics
+### `POST /api/register`
+* **Authentication:** None (Public)
+* **RBAC Allowed Roles:** Automatically registers public roles `volunteer` or `refugee` (affected citizen). Restricted roles `admin` and `branch manager` cannot be registered through this public endpoint.
+* **Request Body:**
+  ```json
+  {
+    "username": "example@domain.com",
+    "password": "SecurePassword123",
+    "firstName": "John",
+    "lastName": "Doe",
+    "country": "India",
+    "state": "Punjab",
+    "city": "Chandigarh",
+    "address": "123 Main St, Chandigarh",
+    "companyType": "Individual",
+    "occupation": "Volunteer Coordinator",
+    "volunteerSkills": ["first_aid", "driving"],
+    "role": "volunteer"
+  }
+  ```
+* **Response:** Returns registered user details and a signed JWT token.
 
-### Image Analysis (Agent 2)
-- **POST /api/emergency/analyze-image** - Analyze disaster from image
-  - Uses `ImageDisasterDetectionAgent` (Agent 2)
-  - Combines EfficientNet B3 model + NASA satellite data
-
-### Routing (Agent 3)
-- **POST /api/emergency/reroute/:emergencyId** - Request re-routing
-  - Uses `SmartRoutingAgent` (Agent 3)
-  - Updates route based on real-time conditions
-
-### Dispatch System
-- **POST /api/emergency/dispatch/:emergencyId** - One-click dispatch
-  - Uses `DispatchService` for automated resource allocation
-  - Integrates: Emergency → Inventory → Routing → Dispatch
-  - Updates inventory stock automatically
-
-- **GET /api/emergency/dispatch-status/:emergencyId** - Get dispatch tracking
-- **GET /api/emergency/active-dispatches** - All active dispatches
-- **PUT /api/emergency/update-status/:emergencyId** - Update dispatch status
-- **PUT /api/emergency/complete/:emergencyId** - Mark as completed
-- **GET /api/emergency/completed** - List completed emergencies
-- **DELETE /api/emergency/:emergencyId** - Delete completed emergency
-
-**Relationships:**
-- Creates/updates `Emergency` model
-- Integrates with `Inventory` (reserves resources)
-- Uses all 3 AI Agents
-- Links to `DisasterZone` via `disasterZoneId`
+### `POST /api/login`
+* **Authentication:** None (Public)
+* **Request Body:**
+  ```json
+  {
+    "username": "example@domain.com",
+    "password": "SecurePassword123"
+  }
+  ```
+* **Response:** Returns user information, role, and a signed JWT token.
 
 ---
 
-## Disaster Routes (`/api/disasters/*`)
-**Location:** `backend/routes/disasters.js`
+## 2. Emergency Routes
 
-### Disaster Zones
-- **GET /api/disasters/zones** - List disaster zones (filterable by status/type/severity)
-- **POST /api/disasters/zones** - Create new disaster zone
-- **PUT /api/disasters/zones/:zoneId** - Update disaster zone
-- **DELETE /api/disasters/zones/:zoneId** - Resolve disaster zone (soft delete)
+**File Location:** [emergency.js](file:///d:/AidFlow/backend/routes/emergency.js)  
+**Base Path:** `/api/emergency`  
+**Authentication:** Required (`protect` middleware applies to all routes except where noted)
 
-### Analytics
-- **GET /api/disasters/analytics** - Disaster statistics and breakdowns
+### Core Emergency Reporting & AI Processing
+#### `POST /api/emergency/request`
+* **Authentication:** Required (User ID resolved from JWT token or fallback request body)
+* **Purpose:** Submit an emergency report. Triggers **Agent 1 (EmergencyAIAgent)** for disaster/sentiment analysis, and **EmergencyDecisionAgent** for autonomous dispatch planning. High-severity reports trigger automatic resource reservation and dispatch.
+* **Request Body:**
+  ```json
+  {
+    "lat": 30.7333,
+    "lon": 76.7794,
+    "message": "Heavy flooding has trapped 5 families in their homes near the river bank.",
+    "address": "Sukhna Lake Area, Chandigarh"
+  }
+  ```
 
-### Integration
-- **GET /api/disasters/zones/:zoneId/emergencies** - Get emergencies linked to zone
+#### `POST /api/emergency/request-with-image`
+* **Purpose:** Submit an emergency report containing a base64 image. Triggers **Agent 2 (ImageDisasterDetectionAgent)** (combining EfficientNet image classification and NASA FIRMS satellite data verification) followed by the Decision Agent.
+* **Request Body:**
+  ```json
+  {
+    "imageData": "data:image/jpeg;base64,...",
+    "location": {
+      "lat": 30.7333,
+      "lon": 76.7794,
+      "address": "Sukhna Lake Area"
+    },
+    "message": "Water levels rising quickly."
+  }
+  ```
 
-**Relationships:**
-- Manages `DisasterZone` model
-- Links to `Emergency` model
-- Used by `LiveDisasters` frontend component
+#### `POST /api/emergency/analyze-image`
+* **Purpose:** Perform image analysis only (Agent 2) without saving an emergency request or triggering dispatch actions.
 
----
-
-## Inventory Routes (`/api/inventory/*`, `/api/donations`, `/api/requests`)
-**Location:** `backend/routes/inventory.js`
-
-### Inventory Items
-- **GET /api/inventory/items** - List all items (filterable)
-- **POST /api/inventory/items** - Add new item
-- **PUT /api/inventory/items/:id** - Update item
-- **DELETE /api/inventory/items/:id** - Delete item
-
-### Locations
-- **GET /api/inventory/locations** - List all locations
-- **POST /api/inventory/locations** - Add new location
-
-### Transactions
-- **GET /api/inventory/transactions** - List transactions
-- **POST /api/inventory/transactions** - Create transaction
-
-### Donations (Volunteer)
-- **GET /api/donations** - List donations
-- **POST /api/donations** - Submit donation (creates `Donation` model)
-- **PUT /api/donations/:id** - Approve/reject donation
-  - If approved, adds to `InventoryItem` stock
-
-### Requests (Recipient)
-- **GET /api/requests** - List requests
-- **POST /api/requests** - Submit request (creates `Request` model)
-- **PUT /api/requests/:id** - Approve/reject request
-  - If approved, deducts from `InventoryItem` stock
-
-**Relationships:**
-- Manages `InventoryItem`, `Location`, `Transaction`, `Donation`, `Request` models
-- Used by `InventoryPage`, `VolunteerPage`, `RecipientPage` frontend components
-- Integrated with `DispatchService` for automatic stock deduction
+#### `POST /api/emergency/public-request`
+* **Authentication:** None (Public endpoint for testing/unauthenticated reports)
+* **Request Body:** Same as `/api/emergency/request`
+* **Response:** Processed emergency request details.
 
 ---
 
-## Agents Routes (`/api/agents/*`)
-**Location:** `backend/routes/agents.js`
+### Emergency Dispatch & Route Optimization
+#### `POST /api/emergency/dispatch/:emergencyId`
+* **Authentication:** Required
+* **RBAC Allowed Roles:** `admin` (Requires explicit `adminId` in request body)
+* **Purpose:** Executed by admins for one-click manual dispatch. Reserves inventory items, calculates optimal route, and dispatches responders.
 
-### CRUD Operations
-- **POST /api/agents/severity-logs** - Create severity log
-- **GET /api/agents/severity-logs** - List severity logs
-- **GET /api/agents/severity-logs/:logId** - Get single log
-- **PUT /api/agents/severity-logs/:logId** - Update log
-- **DELETE /api/agents/severity-logs/:logId** - Delete log
+#### `POST /api/emergency/reroute/:emergencyId`
+* **Purpose:** Request route update for a dispatch en-route. Uses **Agent 3 (SmartRoutingAgent)** to calculate a new route based on real-time traffic and hazard blocks.
+* **Request Body:**
+  ```json
+  {
+    "currentLocation": { "lat": 30.725, "lon": 76.782 }
+  }
+  ```
 
-Similar CRUD for:
-- `/api/agents/disaster-zones/*`
-- `/api/agents/routing-history/*`
-- `/api/agents/agent-outputs/*`
+#### `POST /api/emergency/ai-decision/:emergencyId`
+* **Purpose:** Manually trigger the AI decision agent to re-evaluate and suggest a dispatch plan for an existing emergency request.
 
-### Analytics
-- **GET /api/agents/analytics/severity-stats** - Severity statistics
-- **GET /api/agents/analytics/zone-stats** - Zone statistics
-- **GET /api/agents/analytics/routing-stats** - Routing statistics
+#### `GET /api/emergency/ai-capabilities`
+* **Purpose:** Returns the current operational status of the Groq/Ollama LLM connection, model names, and decision criteria.
 
-### Routing (Agent 3)
-- **POST /api/agents/calculate-route** - Calculate optimal route
-  - Uses `RoutingService` (Agent 3 functionality)
-  - Returns route with waypoints, distance, ETA
+#### `GET /api/emergency/status/:emergencyId`
+* **Purpose:** Fetch detailed status, timeline entries, assigned response team, and AI analysis for a specific emergency.
 
-**Relationships:**
-- Manages `SeverityLog`, `DisasterZone`, `RoutingHistory`, `AgentOutput` models
-- Used for agent output tracking and analytics
+#### `GET /api/emergency/active`
+* **Purpose:** List all emergencies with statuses `received`, `analyzing`, `dispatched`, or `en_route` sorted by severity.
 
----
+#### `PUT /api/emergency/update/:emergencyId`
+* **Purpose:** Update status, notes, or assign a responder team to an emergency. Adds to the timeline logs.
 
-## Disaster Predictions (`/api/disaster-predictions`)
-**Location:** `backend/server.js`
-
-- **GET /api/disaster-predictions** - Get disaster prediction data from CSV
-  - Reads `predictions_with_coords.csv`
-  - Filters by probability threshold (0.5)
-  - Returns GeoJSON-compatible format
-
-**Relationships:**
-- Used by `DisasterMapSection` frontend component
-- Displays predicted disaster locations on map
+#### `GET /api/emergency/analytics`
+* **Purpose:** Aggregates statistics of emergencies grouped by status, severity, disaster type, and counts recent emergencies.
 
 ---
 
-## Route Dependencies
+### Dispatch Request Board (Manual Review Queue)
+#### `GET /api/emergency/dispatch-requests`
+* **Purpose:** List all pending dispatch requests awaiting admin approval (for low/medium severity emergencies).
 
-```
-Emergency Routes
-├── Uses: EmergencyAIAgent (Agent 1)
-├── Uses: ImageDisasterDetectionAgent (Agent 2)
-├── Uses: SmartRoutingAgent (Agent 3)
-├── Uses: DispatchService
-├── Creates: Emergency model
-└── Updates: InventoryItem (reserves resources)
+#### `PUT /api/emergency/dispatch-requests/:id/approve`
+* **Purpose:** Approve a dispatch request. Triggers dispatch execution and resource deployment.
+* **Request Body:** `{ "adminId": "admin-mongo-id", "notes": "Approved" }`
 
-Disaster Routes
-├── Manages: DisasterZone model
-└── Links: Emergency model (via disasterZoneId)
+#### `PUT /api/emergency/dispatch-requests/:id/reject`
+* **Purpose:** Reject a dispatch request and log the rejection reason.
 
-Inventory Routes
-├── Manages: InventoryItem, Location, Transaction
-├── Manages: Donation (Volunteer)
-└── Manages: Request (Recipient)
+---
 
-Agents Routes
-├── Manages: SeverityLog, RoutingHistory, AgentOutput
-└── Uses: RoutingService (Agent 3)
-```
+### Responder Tracking & Completion
+#### `GET /api/emergency/dispatch-status/:emergencyId`
+* **Purpose:** Get tracking details, distance, ETA, and routing waypoints for active dispatches.
 
+#### `PUT /api/emergency/update-status/:emergencyId`
+* **Purpose:** Update tracking status (e.g. to `en_route`, `arrived`, etc.).
+
+#### `GET /api/emergency/active-dispatches`
+* **Purpose:** Returns all active dispatches (`dispatched`, `en_route`, `delivered`) and recently completed dispatches.
+
+#### `PUT /api/emergency/complete/:emergencyId`
+* **Purpose:** Mark an emergency dispatch as `completed`, recording delivery notes and arrival timestamps.
+
+#### `GET /api/emergency/completed`
+* **Purpose:** Get a list of the 50 most recently completed emergencies.
+
+#### `DELETE /api/emergency/:emergencyId`
+* **Purpose:** Permanently delete an emergency record (Allowed only if status is `completed` or `cancelled`).
+
+---
+
+## 3. Disaster Routes
+
+**File Location:** [disasters.js](file:///d:/AidFlow/backend/routes/disasters.js)  
+**Base Path:** `/api/disasters`  
+**Authentication:** Optional / None (for public tracking dashboards)
+
+### Live Feeds (External Integrations)
+#### `GET /api/disasters/test`
+* **Purpose:** Health check route for disaster endpoints.
+
+#### `GET /api/disasters/live`
+* **Purpose:** Combined feed of live natural disasters (USGS earthquakes + NASA EONET events). Filters by `minMagnitude` and `days`.
+
+#### `GET /api/disasters/live/earthquakes`
+* **Purpose:** Live earthquakes feed directly from USGS API.
+
+#### `GET /api/disasters/live/events`
+* **Purpose:** Live hazard events (fires, storms, volcanoes) from NASA EONET.
+
+#### `POST /api/disasters/live/import/:id`
+* **Purpose:** Import a disaster from live external feeds into AidFlow's local DB as an active `DisasterZone`.
+
+### Local Disaster Zones
+#### `GET /api/disasters/zones`
+* **Purpose:** Get all registered disaster zones (Filterable by `status`, `type`, `severity`).
+
+#### `POST /api/disasters/zones`
+* **Purpose:** Manually create a new disaster zone.
+
+#### `DELETE /api/disasters/zones/:zoneId`
+* **Purpose:** Mark a disaster zone as `resolved` (soft delete). Updates metadata with resolution notes.
+
+#### `GET /api/disasters/analytics`
+* **Purpose:** Summarizes counts of active, resolved, total, and recent disaster zones, plus estimated affected populations.
+
+---
+
+## 4. Inventory, Donations & Requests Routes
+
+**File Location:** [inventory.js](file:///d:/AidFlow/backend/routes/inventory.js) and [server.js](file:///d:/AidFlow/backend/server.js)  
+**Base Paths:** Mounted under both `/api/inventory` (standard CRUD) and `/api` (for donations/requests compatibility)
+
+### Inventory Items CRUD
+#### `GET /api/inventory/items` or `GET /api/items`
+* **Authentication:** Required (when accessed via `/api/inventory/items` in `server.js`)
+* **Purpose:** List inventory items, filterable by `category`, `location`, and `status`.
+
+#### `POST /api/inventory/items` or `POST /api/items`
+* **Purpose:** Add a new item to inventory.
+
+#### `PUT /api/inventory/items/:id` or `PUT /api/items/:id`
+* **Purpose:** Update details, cost, or stock quantities of an item.
+
+#### `DELETE /api/inventory/items/:id` or `DELETE /api/items/:id`
+* **Purpose:** Remove an item from the inventory registry.
+
+### Inventory Locations & Transactions
+#### `GET /api/inventory/locations` or `GET /api/locations`
+* **Purpose:** List all storage hubs/inventory locations.
+
+#### `POST /api/inventory/locations` or `POST /api/locations`
+* **Purpose:** Add a new inventory hub location.
+
+#### `GET /api/inventory/transactions` or `GET /api/transactions`
+* **Purpose:** List transaction history log (Filterable by `type` and `status`).
+
+#### `POST /api/inventory/transactions` or `POST /api/transactions`
+* **Purpose:** Log a manual inventory transaction.
+
+---
+
+### Donations (Volunteer Flows)
+#### `GET /api/donations` or `GET /api/inventory/donations`
+* **Purpose:** Get a list of donations (Filterable by `status` and `volunteerId`).
+
+#### `POST /api/donations` or `POST /api/inventory/donations`
+* **Purpose:** Submit a new donation request.
+
+#### `POST /api/volunteer/donate`
+* **Authentication:** Required
+* **RBAC Allowed Roles:** `volunteer`, `admin`
+* **Purpose:** Submit a donation associated directly with the logged-in user.
+
+#### `GET /api/volunteer/donations`
+* **Authentication:** Required
+* **RBAC Allowed Roles:** `volunteer`, `admin`
+* **Purpose:** Get all donations submitted by the logged-in volunteer.
+
+#### `PUT /api/donations/:id` or `PUT /api/admin/donation/:id`
+* **Authentication:** Required (via admin endpoint)
+* **RBAC Allowed Roles:** `admin`, `branch manager`
+* **Purpose:** Approve or reject a donation. Approving the donation automatically increases the corresponding stock in the `InventoryItem` model.
+
+---
+
+### Item Requests (Affected Citizen Flows)
+#### `GET /api/requests` or `GET /api/inventory/requests`
+* **Purpose:** Get a list of item requests (Filterable by `status` and `requesterId`).
+
+#### `POST /api/requests` or `POST /api/inventory/requests`
+* **Purpose:** Submit a resource request.
+
+#### `POST /api/requester/request`
+* **Authentication:** Required
+* **RBAC Allowed Roles:** `affected citizen`, `admin`
+* **Purpose:** Submit an item request linked to the logged-in citizen.
+
+#### `GET /api/requester/requests`
+* **Authentication:** Required
+* **RBAC Allowed Roles:** `affected citizen`, `admin`
+* **Purpose:** Get all requests submitted by the logged-in citizen.
+
+#### `PUT /api/requester/fulfill/:id`
+* **Authentication:** Required
+* **RBAC Allowed Roles:** `affected citizen`
+* **Purpose:** Allows a citizen to mark their own request as `fulfilled`.
+
+#### `GET /api/admin/requests`
+* **Authentication:** Required
+* **RBAC Allowed Roles:** `admin`, `branch manager`
+* **Purpose:** Get all submitted item requests (populated with requester details) for the admin dashboard.
+
+#### `PUT /api/requests/:id` or `PUT /api/admin/request/:id`
+* **Authentication:** Required
+* **RBAC Allowed Roles:** `admin`, `branch manager`, `affected citizen`
+* **Purpose:** Approve, deliver, or update the status of a request. Approving or delivering the request automatically deducts the requested quantities from the `InventoryItem` stock.
+
+#### `DELETE /api/admin/request/:id`
+* **Authentication:** Required
+* **RBAC Allowed Roles:** `admin`
+* **Purpose:** Permanently delete a request from the queue.
+
+---
+
+## 5. Agent Output & Severity Tracking Routes
+
+**File Location:** [agents.js](file:///d:/AidFlow/backend/routes/agents.js)  
+**Base Path:** `/api/agents`  
+**Authentication:** Required (`protect` middleware applies to all routes)
+
+Provides full CRUD operations and statistics for logging AI outputs.
+
+### Agent Severity Logs CRUD
+- `POST /api/agents/severity-logs` - Log a new AI severity analysis
+- `GET /api/agents/severity-logs` - Get all severity logs (Filterable by `agentType`, `severity`, `disasterType`, `status`)
+- `GET /api/agents/severity-logs/:logId` - Get a specific severity log
+- `PUT /api/agents/severity-logs/:logId` - Update log contents
+- `DELETE /api/agents/severity-logs/:logId` - Delete log entry
+
+### Disaster Zones Sync CRUD
+- `POST /api/agents/disaster-zones` - Add a disaster zone record
+- `GET /api/agents/disaster-zones` - Get disaster zones tracked by AI
+- `GET /api/agents/disaster-zones/:zoneId` - Get single zone
+- `PUT /api/agents/disaster-zones/:zoneId` - Update zone details
+- `DELETE /api/agents/disaster-zones/:zoneId` - Delete zone entry
+
+### Agent Routing History CRUD
+- `POST /api/agents/routing-history` - Log route calculations
+- `GET /api/agents/routing-history` - Get calculated routes log (Filter by `status`, `severity`, `emergencyId`)
+- `GET /api/agents/routing-history/:routeId` - Get specific route path details
+- `PUT /api/agents/routing-history/:routeId` - Update route log
+- `DELETE /api/agents/routing-history/:routeId` - Delete route log entry
+
+### AI Agent Raw Outputs CRUD
+- `POST /api/agents/agent-outputs` - Store raw LLM or classifier outputs
+- `GET /api/agents/agent-outputs` - Get raw outputs (Filter by `agentId`, `status`, `emergencyId`)
+- `GET /api/agents/agent-outputs/:outputId` - Fetch specific agent output
+- `PUT /api/agents/agent-outputs/:outputId` - Update output entry
+- `DELETE /api/agents/agent-outputs/:outputId` - Delete output entry
+
+### Analytics & AI Tools
+- `GET /api/agents/analytics/severity-stats` - Aggregate average severity scores and confidence levels grouped by agent type.
+- `GET /api/agents/analytics/zone-stats` - Aggregated zone counts and affected populations by type, severity, and status.
+- `GET /api/agents/analytics/routing-stats` - Average distances and durations of dispatched routes by status/severity.
+- `POST /api/agents/calculate-route` - Request route calculation with origin, destination, and options. Returns distance, duration, and GeoJSON waypoints.
+
+---
+
+## 6. Disaster Predictions Routes
+
+**File Location:** [server.js](file:///d:/AidFlow/backend/server.js)  
+**Base Path:** `/api`
+
+### `GET /api/disaster-predictions`
+* **Authentication:** None (Public)
+* **Purpose:** Reads satellite disaster prediction metadata from `data/predictions_with_coords.csv` and returns predicted disaster locations filterable by probability thresholds. Used directly by the frontend mapping components.

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AidFlow | Admin Dispatch Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #1f0f0d;
+            color: #fbdbd7;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        @media (prefers-reduced-motion: no-preference) {
+            /* Entrance Animations */
+            @keyframes fadeInUp {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            
+            .animate-entrance {
+                animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+            }
+            
+            .stagger-1 { animation-delay: 0.1s; }
+            .stagger-2 { animation-delay: 0.2s; }
+            .stagger-3 { animation-delay: 0.3s; }
+            .stagger-4 { animation-delay: 0.4s; }
+
+            /* Global Progress Bar Animation */
+            @keyframes growX {
+                from { width: 0%; }
+            }
+            .animate-progress-grow {
+                animation: growX 1.5s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+            }
+
+            /* Calming Pulse Effect */
+            @keyframes subtlePulse {
+                0%, 100% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.6; transform: scale(1.15); }
+            }
+            .pulse-live {
+                animation: subtlePulse 2.5s ease-in-out infinite;
+            }
+
+            /* Shimmer effect for completed tasks */
+            @keyframes shimmer {
+                0% { background-position: -200% 0; }
+                100% { background-position: 200% 0; }
+            }
+            .shimmer-bg {
+                background: linear-gradient(90deg, transparent, rgba(98, 223, 125, 0.05), transparent);
+                background-size: 200% 100%;
+                animation: shimmer 3s infinite linear;
+            }
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #44302e;
+            border-radius: 10px;
+        }
+        .glass-card {
+            background: rgba(45, 27, 25, 0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(172, 136, 132, 0.1);
+        }
+
+        /* Smooth Interactive Transitions */
+        .card-interactive {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-interactive:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px -10px rgba(180, 197, 255, 0.15);
+            border-color: rgba(180, 197, 255, 0.4);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary": "#ffb4ab",
+                      "secondary": "#b4c5ff",
+                      "tertiary": "#62df7d",
+                      "background": "#1f0f0d",
+                      "surface": "#1f0f0d",
+                      "surface-container": "#2d1b19",
+                      "surface-container-high": "#382523",
+                      "surface-container-highest": "#44302e",
+                      "on-surface": "#fbdbd7",
+                      "on-surface-variant": "#e6bdb8",
+                      "outline": "#ac8884",
+                      "outline-variant": "#5c403c",
+                      "primary-container": "#dc2626",
+                      "on-primary-container": "#fff6f5",
+                      "secondary-container": "#0053db",
+                      "on-secondary-container": "#cdd7ff",
+                      "tertiary-container": "#008438",
+                      "on-tertiary-container": "#e7ffe4"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "2xl": "1rem",
+                      "3xl": "1.5rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-mobile": "16px",
+                      "margin-desktop": "32px",
+                      "unit": "4px",
+                      "gutter": "16px",
+                      "container-max": "1440px"
+              },
+              "fontFamily": {
+                      "body-md": ["Inter"],
+                      "label-caps": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "data-mono": ["JetBrains Mono"]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-surface selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-mobile h-16 bg-surface border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary pulse-live">wifi</span>
+<h1 class="text-headline-md font-bold text-primary">AidFlow</h1>
+</div>
+<div class="flex items-center gap-3">
+<div class="hidden md:flex items-center gap-6 mr-6">
+<a class="text-label-caps text-on-surface-variant hover:text-primary transition-colors" href="#">LIVE MAP</a>
+<a class="text-label-caps text-on-surface-variant hover:text-primary transition-colors" href="#">INCIDENTS</a>
+<a class="text-label-caps text-primary font-bold" href="#">DASHBOARD</a>
+</div>
+<button class="material-symbols-outlined p-2 rounded-full hover:bg-surface-variant transition-all duration-300 text-on-surface">notifications_active</button>
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container font-bold text-xs">AD</div>
+</div>
+</header>
+<main class="pt-20 pb-24 md:pb-8 px-margin-mobile max-w-container-max mx-auto">
+<!-- Main Container -->
+<div class="animate-entrance bg-surface-container rounded-3xl shadow-lg border border-outline-variant overflow-hidden">
+<!-- Global Progress Tracker (Interactive Header) -->
+<div class="p-6 border-b border-outline-variant bg-surface-container-high/50">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+<div class="flex-grow">
+<div class="flex justify-between items-end mb-2">
+<span class="text-label-caps text-on-surface-variant uppercase tracking-wider font-semibold">Total Operational Completion</span>
+<span class="text-headline-md font-bold text-tertiary">78%</span>
+</div>
+<div class="w-full h-3 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full animate-progress-grow shadow-[0_0_12px_rgba(98,223,125,0.3)]" style="width: 78%;"></div>
+</div>
+</div>
+<!-- Workflow Stages -->
+<div class="flex items-center gap-4 text-[10px] font-bold">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-highest border border-outline-variant transition-colors hover:bg-surface-container-highest/80">
+<span class="w-2 h-2 rounded-full bg-on-surface-variant"></span>
+<span class="text-on-surface-variant uppercase">Pending</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary-container/20 border border-secondary/30 transition-colors hover:bg-secondary-container/30">
+<span class="w-2 h-2 rounded-full bg-secondary pulse-live"></span>
+<span class="text-secondary uppercase">In Progress</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-tertiary-container/20 border border-tertiary/30 transition-colors hover:bg-tertiary-container/30">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="text-tertiary uppercase">Completed</span>
+</div>
+</div>
+</div>
+</div>
+<div class="p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Left Column -->
+<div class="lg:col-span-8 flex flex-col gap-8">
+<!-- Clean Metric Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+<div class="animate-entrance stagger-1 p-4 rounded-2xl bg-surface-container-high border border-outline-variant card-interactive cursor-default">
+<div class="flex justify-between items-center mb-1">
+<span class="text-label-caps text-on-surface-variant">Active Dispatches</span>
+<span class="material-symbols-outlined text-secondary text-lg">broadcast_on_home</span>
+</div>
+<p class="text-headline-md font-bold text-on-surface">12 <span class="text-xs font-normal text-on-surface-variant">Units</span></p>
+</div>
+<div class="animate-entrance stagger-2 p-4 rounded-2xl bg-surface-container-high border border-outline-variant card-interactive cursor-default">
+<div class="flex justify-between items-center mb-1">
+<span class="text-label-caps text-on-surface-variant">Avg Response</span>
+<span class="material-symbols-outlined text-secondary text-lg">timer</span>
+</div>
+<p class="text-headline-md font-bold text-on-surface">4:12 <span class="text-xs font-normal text-on-surface-variant">m/s</span></p>
+</div>
+<div class="animate-entrance stagger-3 p-4 rounded-2xl bg-surface-container-high border border-outline-variant card-interactive cursor-default">
+<div class="flex justify-between items-center mb-1">
+<span class="text-label-caps text-on-surface-variant">Resource Load</span>
+<span class="material-symbols-outlined text-secondary text-lg">analytics</span>
+</div>
+<p class="text-headline-md font-bold text-on-surface">82% <span class="text-xs font-normal text-on-surface-variant">System</span></p>
+</div>
+</div>
+<!-- Active Incident Feed -->
+<section>
+<h3 class="text-label-caps text-on-surface font-bold mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">emergency</span>
+                            ACTIVE INCIDENTS
+                        </h3>
+<div class="grid grid-cols-1 gap-4">
+<!-- Incident 1 -->
+<div class="animate-entrance stagger-1 card-interactive group relative overflow-hidden bg-surface-container-high border border-outline-variant rounded-2xl p-5 cursor-pointer active:scale-100">
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center gap-3">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-secondary/10 text-secondary border border-secondary/20 uppercase tracking-wider">High Priority</span>
+<h4 class="text-headline-md font-bold text-on-surface">Structural Fire - Sector 4</h4>
+</div>
+<span class="text-data-mono text-xs text-on-surface-variant">02:45 ago</span>
+</div>
+<p class="text-body-md text-on-surface-variant mb-6 line-clamp-1">Support units F12 and M04 engaged. Structural assessment in progress.</p>
+<div class="flex items-center gap-6">
+<div class="flex-grow">
+<div class="flex justify-between items-center text-[10px] text-on-surface-variant mb-2">
+<span>UNIT JOURNEY: UNIT F12</span>
+<span class="font-bold text-tertiary">90% ARRIVED</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full pulse-live" style="width: 90%;"></div>
+</div>
+</div>
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full border-2 border-surface-container-high bg-secondary flex items-center justify-center text-[10px] text-on-secondary font-bold pulse-live" style="animation-delay: 0.2s;">F12</div>
+<div class="w-8 h-8 rounded-full border-2 border-surface-container-high bg-secondary flex items-center justify-center text-[10px] text-on-secondary font-bold pulse-live" style="animation-delay: 0.5s;">M04</div>
+</div>
+</div>
+</div>
+<!-- Incident 2 -->
+<div class="animate-entrance stagger-2 card-interactive group relative overflow-hidden bg-surface-container-high border border-outline-variant rounded-2xl p-5 cursor-pointer active:scale-100">
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center gap-3">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-on-surface-variant/10 text-on-surface-variant border border-on-surface-variant/20 uppercase tracking-wider">Routine</span>
+<h4 class="text-headline-md font-bold text-on-surface">Traffic Control - Route 12</h4>
+</div>
+<span class="text-data-mono text-xs text-on-surface-variant">08:12 ago</span>
+</div>
+<p class="text-body-md text-on-surface-variant mb-6 line-clamp-1">Lane blockage reported. Unit P22 dispatched for hazard management.</p>
+<div class="flex items-center gap-6">
+<div class="flex-grow">
+<div class="flex justify-between items-center text-[10px] text-on-surface-variant mb-2">
+<span>UNIT JOURNEY: UNIT P22</span>
+<span class="font-bold text-secondary">40% EN ROUTE</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-secondary rounded-full" style="width: 40%;"></div>
+</div>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-surface-container-high bg-surface-container-highest flex items-center justify-center text-[10px] text-on-surface-variant font-bold">P22</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Milestone Focus -->
+<section class="opacity-80">
+<h3 class="text-label-caps text-on-surface-variant font-bold mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">check_circle</span>
+                            RECENTLY COMPLETED
+                        </h3>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div class="animate-entrance stagger-3 shimmer-bg p-3 rounded-xl bg-surface-container/30 border border-outline-variant/30 flex items-center gap-3 card-interactive">
+<span class="material-symbols-outlined text-tertiary">check_circle</span>
+<div class="flex-grow">
+<p class="text-xs font-bold text-on-surface-variant">Hazard Cleared - Sector 9</p>
+<p class="text-[10px] text-on-surface-variant/60">Resolved 14:22 • Duration 18m</p>
+</div>
+</div>
+<div class="animate-entrance stagger-4 shimmer-bg p-3 rounded-xl bg-surface-container/30 border border-outline-variant/30 flex items-center gap-3 card-interactive">
+<span class="material-symbols-outlined text-tertiary">check_circle</span>
+<div class="flex-grow">
+<p class="text-xs font-bold text-on-surface-variant">EMS Support - Downtown</p>
+<p class="text-[10px] text-on-surface-variant/60">Resolved 14:05 • Duration 42m</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column -->
+<div class="lg:col-span-4 flex flex-col gap-8">
+<!-- Map Card -->
+<div class="animate-entrance stagger-2 bg-surface-container-high rounded-2xl border border-outline-variant overflow-hidden h-[320px] relative group card-interactive">
+<img alt="Dispatch Map View" class="w-full h-full object-cover opacity-60 grayscale group-hover:opacity-100 transition-all duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDmUtD5ktvxtE9IM35F8qUdP3gyhZjhjIpYsDyplWxE2JCBSvy-xsjHXmCA4kDNXsO9S6G_ES11NTegjY1XFamXn3JxPX5zIYW6SLw-qwEUCaDoVdktuF8dkI49yDnVqdgBsehTFk04t83Cv2rJ-6WTwvRB_XaMLcyKckkKkAWLekuqiEpqKKlkZtfxV86JyyW-Tbt1TANGvV8Ule0obyJY5X3VrjZ2FfpYZ7Onaxu4UqtliBsA2m_ldR_q0yeoxFCcIQIXsbnrCYM"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-high/80 to-transparent pointer-events-none"></div>
+<div class="absolute top-3 left-3 px-3 py-1 rounded bg-surface-container/90 backdrop-blur-md border border-outline-variant text-[10px] font-bold text-on-surface">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-primary mr-1 pulse-live"></span>
+                            LIVE OVERVIEW
+                        </div>
+<button class="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center shadow-lg active:scale-90 transition-all duration-300">
+<span class="material-symbols-outlined text-lg">open_in_full</span>
+</button>
+</div>
+<!-- Resource Load List -->
+<div class="animate-entrance stagger-3 bg-surface-container-high rounded-2xl border border-outline-variant p-5 card-interactive">
+<h3 class="text-label-caps text-on-surface font-bold mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">groups</span>
+                            RESOURCE LOAD
+                        </h3>
+<div class="space-y-4">
+<div class="group/bar">
+<div class="flex justify-between text-[11px] font-bold mb-1">
+<span class="text-on-surface-variant">FIRE/RESCUE</span>
+<span class="text-on-surface">14/20</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-secondary rounded-full transition-all duration-1000 group-hover/bar:brightness-110" style="width: 70%;"></div>
+</div>
+</div>
+<div class="group/bar">
+<div class="flex justify-between text-[11px] font-bold mb-1">
+<span class="text-on-surface-variant">EMS UNITS</span>
+<span class="text-on-surface">18/22</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full transition-all duration-1000 group-hover/bar:brightness-110" style="width: 82%;"></div>
+</div>
+</div>
+<div class="group/bar">
+<div class="flex justify-between text-[11px] font-bold mb-1">
+<span class="text-on-surface-variant">LOGISTICS</span>
+<span class="text-on-surface">5/12</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-outline rounded-full transition-all duration-1000 group-hover/bar:brightness-110" style="width: 41%;"></div>
+</div>
+</div>
+</div>
+</div>
+<button class="animate-entrance stagger-4 w-full bg-primary-container text-on-primary-container py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all duration-300 shadow-md">
+<span class="material-symbols-outlined">add_alert</span>
+                        CREATE NEW DISPATCH
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-margin-mobile py-2 bg-surface border-t border-outline-variant">
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:text-primary transition-all duration-300" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="text-label-caps font-label-caps">Live Map</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:text-primary transition-all duration-300" href="#">
+<span class="material-symbols-outlined">emergency</span>
+<span class="text-label-caps font-label-caps">Report</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-1 shadow-inner active:scale-95 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-white">dashboard</span>
+<span class="text-label-caps font-label-caps text-white">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:text-primary transition-all duration-300" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="text-label-caps font-label-caps">Inventory</span>
+</a>
+</nav>
+<script>
+        // Micro-interactions and initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            // Trigger sequence animations for cards
+            const cards = document.querySelectorAll('.animate-entrance');
+            cards.forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.05}s`;
+            });
+
+            // Global ripple/glow effect handler
+            document.querySelectorAll('.card-interactive').forEach(item => {
+                item.addEventListener('mousedown', (e) => {
+                    item.style.transform = 'scale(0.98)';
+                });
+                item.addEventListener('mouseup', () => {
+                    item.style.transform = 'scale(1.02)';
+                });
+                item.addEventListener('mouseleave', () => {
+                    item.style.transform = 'scale(1)';
+                });
+            });
+        });
+    </script>
+</body></html>

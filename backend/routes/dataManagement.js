@@ -14,7 +14,7 @@ const router = express.Router();
  * POST /api/data/locations
  * Add new location (Admin/Branch Manager only)
  */
-router.post('/locations', protect, authorize('admin', 'branch manager'), async (req, res) => {
+router.post('/locations', protect, authorize('Super Admin', 'Admin', 'Branch Manager'), async (req, res) => {
     try {
         const { name, type, capacity, coordinates } = req.body;
         
@@ -77,7 +77,7 @@ router.get('/locations', protect, async (req, res) => {
  * POST /api/data/inventory
  * Add new inventory item (Admin/Branch Manager only)
  */
-router.post('/inventory', protect, authorize('admin', 'branch manager'), async (req, res) => {
+router.post('/inventory', protect, authorize('Super Admin', 'Admin', 'Branch Manager'), async (req, res) => {
     try {
         const {
             name,
@@ -160,7 +160,7 @@ router.post('/inventory', protect, authorize('admin', 'branch manager'), async (
  * POST /api/data/users
  * Add new user (Admin only)
  */
-router.post('/users', protect, authorize('admin'), async (req, res) => {
+router.post('/users', protect, authorize('Super Admin', 'Admin'), async (req, res) => {
     try {
         const {
             username,

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AidFlow - Inventory Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-fixed": "#00174b",
+                    "on-primary-container": "#fff6f5",
+                    "on-error": "#690005",
+                    "background": "#1f0f0d",
+                    "on-tertiary-fixed-variant": "#005320",
+                    "primary": "#ffb4ab",
+                    "on-tertiary-container": "#e7ffe4",
+                    "surface-container-lowest": "#190a08",
+                    "inverse-surface": "#fbdbd7",
+                    "surface-container-high": "#382523",
+                    "secondary-fixed-dim": "#b4c5ff",
+                    "tertiary-fixed-dim": "#62df7d",
+                    "primary-container": "#dc2626",
+                    "tertiary": "#62df7d",
+                    "outline-variant": "#5c403c",
+                    "surface-container": "#2d1b19",
+                    "surface-variant": "#44302e",
+                    "inverse-primary": "#bf0715",
+                    "surface-container-low": "#281715",
+                    "outline": "#ac8884",
+                    "on-secondary-container": "#cdd7ff",
+                    "on-tertiary-fixed": "#002109",
+                    "on-primary-fixed": "#410002",
+                    "surface": "#1f0f0d",
+                    "surface-dim": "#1f0f0d",
+                    "primary-fixed-dim": "#ffb4ab",
+                    "on-secondary-fixed-variant": "#003ea8",
+                    "surface-tint": "#ffb4ab",
+                    "surface-container-highest": "#44302e",
+                    "on-surface-variant": "#e6bdb8",
+                    "on-error-container": "#ffdad6",
+                    "tertiary-fixed": "#7ffc97",
+                    "on-background": "#fbdbd7",
+                    "secondary": "#b4c5ff",
+                    "on-primary-fixed-variant": "#93000b",
+                    "tertiary-container": "#008438",
+                    "inverse-on-surface": "#3f2c29",
+                    "error-container": "#93000a",
+                    "primary-fixed": "#ffdad6",
+                    "secondary-container": "#0053db",
+                    "on-primary": "#690005",
+                    "on-secondary": "#002a78",
+                    "on-tertiary": "#003914",
+                    "secondary-fixed": "#dbe1ff",
+                    "on-surface": "#fbdbd7",
+                    "surface-bright": "#493432",
+                    "error": "#ffb4ab"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "margin-mobile": "16px",
+                    "gutter": "16px",
+                    "unit": "4px",
+                    "margin-desktop": "32px",
+                    "container-max": "1440px"
+            },
+            "fontFamily": {
+                    "display-lg": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "body-md": ["Inter"],
+                    "data-mono": ["JetBrains Mono"],
+                    "headline-lg": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "headline-md": ["Inter"]
+            },
+            "fontSize": {
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "data-mono": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .status-bar-fill {
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f0f0d;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #44302e;
+            border-radius: 10px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-mobile h-16 bg-surface border-b border-outline-variant">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">wifi</span>
+<h1 class="text-headline-md font-headline-md font-bold text-primary">AidFlow</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-surface-variant transition-all active:scale-95 duration-75">
+<span class="material-symbols-outlined text-primary">notifications_active</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a logistics manager in a modern command center. The background is slightly blurred showing glowing blue and red digital screens. The individual is wearing a dark utilitarian vest with tactical pockets. High-contrast lighting with a focus on efficiency and urgent duty." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvu65F9-FQNAqMYVe4UN5Xqei-tF_WtI1uYj2T_Juim6gXRUIGMN_QpLYTw8owOMQ2pcalK5Iiz4GuRnTfZD59KTbAIrnNVECBE8smdW_PA5LEANsqRABdQP39yM4qW9Drlmogjrzn2_ObPQ6Uw4k8ZA70Ic1dgrL6clOhV-kpouPC7ftI78sov0EkyJ_w1kQKvcsEHzvBD7fR8J4pHRtgrKq47Gz5uLoX5yZHprMO5NjV1vls5lTJ3wT416xTJCi5-Xm12uHbM-g"/>
+</div>
+</div>
+</header>
+<main class="pt-20 pb-24 px-margin-mobile max-w-container-max mx-auto">
+<!-- Dashboard Header & Search -->
+<div class="mb-8 space-y-4">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<h2 class="text-headline-lg-mobile md:text-headline-lg font-headline-lg text-on-surface">Inventory Command</h2>
+<p class="text-on-surface-variant font-body-md">Monitoring 12 regional distribution centers</p>
+</div>
+<button class="bg-primary-container text-on-primary-container font-bold px-6 py-3 rounded-xl flex items-center gap-2 hover:brightness-110 transition-all active:scale-95">
+<span class="material-symbols-outlined">swap_horiz</span>
+                    Request Stock Transfer
+                </button>
+</div>
+<!-- Search and Filter Bar -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-surface-container border border-outline-variant p-2 rounded-xl">
+<div class="md:col-span-2 relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full bg-surface border-none rounded-lg pl-10 text-on-surface focus:ring-2 focus:ring-primary placeholder:text-on-surface-variant/50" placeholder="Filter by Warehouse ID or Region..." type="text"/>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 flex items-center justify-between hover:bg-surface-variant transition-colors">
+<span class="text-label-caps font-label-caps">Status: ALL</span>
+<span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 flex items-center justify-between hover:bg-surface-variant transition-colors">
+<span class="text-label-caps font-label-caps">Priority Sort</span>
+<span class="material-symbols-outlined text-sm">sort</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Inventory List / Warehouse Grid -->
+<div class="space-y-4">
+<!-- Warehouse Card 01 - Critical -->
+<div class="bg-surface-container-low border border-outline-variant rounded-xl overflow-hidden hover:border-primary/50 transition-colors relative group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary-container"></div>
+<div class="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+<!-- Warehouse Info -->
+<div class="lg:col-span-3">
+<div class="flex items-center justify-between mb-1">
+<span class="text-data-mono font-data-mono text-primary text-xs tracking-tighter">WH-NORTH-082</span>
+<span class="text-data-mono font-data-mono text-on-surface-variant text-[10px]">Updated: 2m ago</span>
+</div>
+<h3 class="text-headline-md font-headline-md text-on-surface leading-tight">North Terminal Alpha</h3>
+<p class="text-label-caps font-label-caps text-on-surface-variant mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">location_on</span> Aleppo, Regional Sector
+                        </p>
+</div>
+<!-- Stock Levels Grid -->
+<div class="lg:col-span-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+<!-- Water -->
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-label-caps text-on-surface-variant uppercase">
+<span>Water</span>
+<span class="text-primary">12%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-primary-container status-bar-fill" style="width: 12%"></div>
+</div>
+<span class="text-data-mono font-data-mono text-[11px] text-primary">CRITICAL</span>
+</div>
+<!-- Food -->
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-label-caps text-on-surface-variant uppercase">
+<span>Food</span>
+<span>84%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-tertiary-container status-bar-fill" style="width: 84%"></div>
+</div>
+<span class="text-data-mono font-data-mono text-[11px] text-tertiary">STABLE</span>
+</div>
+<!-- Medical -->
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-label-caps text-on-surface-variant uppercase">
+<span>Medical</span>
+<span class="text-orange-400">34%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-orange-500 status-bar-fill" style="width: 34%"></div>
+</div>
+<span class="text-data-mono font-data-mono text-[11px] text-orange-400">LOW</span>
+</div>
+<!-- Shelter -->
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-label-caps text-on-surface-variant uppercase">
+<span>Shelter</span>
+<span>92%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-tertiary-container status-bar-fill" style="width: 92%"></div>
+</div>
+<span class="text-data-mono font-data-mono text-[11px] text-tertiary">STABLE</span>
+</div>
+</div>
+<!-- Actions -->
+<div class="lg:col-span-3 flex justify-end gap-2">
+<button class="p-3 bg-surface-container-highest border border-outline-variant rounded-lg hover:bg-primary/10 hover:border-primary group transition-all">
+<span class="material-symbols-outlined group-hover:text-primary">visibility</span>
+</button>
+<button class="flex-1 bg-surface-container-highest border border-outline-variant text-on-surface font-bold px-4 py-2 rounded-lg text-sm hover:bg-surface-variant">
+                            Manage Stock
+                        </button>
+</div>
+</div>
+</div>
+<!-- Warehouse Card 02 - Warning -->
+<div class="bg-surface-container-low border border-outline-variant rounded-xl overflow-hidden hover:border-orange-500/50 transition-colors relative group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-orange-500"></div>
+<div class="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+<div class="lg:col-span-3">
+<div class="flex items-center justify-between mb-1">
+<span class="text-data-mono font-data-mono text-on-surface-variant text-xs tracking-tighter">WH-EAST-412</span>
+<span class="text-data-mono font-data-mono text-on-surface-variant text-[10px]">Updated: 15m ago</span>
+</div>
+<h3 class="text-headline-md font-headline-md text-on-surface leading-tight">East Border Hub</h3>
+<p class="text-label-caps font-label-caps text-on-surface-variant mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">location_on</span> Gaziantep, Logistics
+                        </p>
+</div>
+<div class="lg:col-span-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-label-caps text-on-surface-variant uppercase">
+<span>Water</span>
+<span>45%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-orange-500 status-bar-fill" style="width: 45%"></div>
+</div>
+<span class="text-data-mono font-data-mono text-[11px] text-orange-400">LOW</span>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-label-caps text-on-surface-variant uppercase">
+<span>Food</span>
+<span>31%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-orange-500 status-bar-fill" style="width: 31%"></div>
+</div>
+<span class="text-data-mono font-data-mono text-[11px] text-orange-400">LOW</span>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-label-caps text-on-surface-variant uppercase">
+<span>Medical</span>
+<span>78%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-tertiary-container status-bar-fill" style="width: 78%"></div>
+</div>
+<span class="text-data-mono font-data-mono text-[11px] text-tertiary">ADEQUATE</span>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-label-caps text-on-surface-variant uppercase">
+<span>Shelter</span>
+<span>65%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-tertiary-container status-bar-fill" style="width: 65%"></div>
+</div>
+<span class="text-data-mono font-data-mono text-[11px] text-tertiary">ADEQUATE</span>
+</div>
+</div>
+<div class="lg:col-span-3 flex justify-end gap-2">
+<button class="p-3 bg-surface-container-highest border border-outline-variant rounded-lg hover:bg-orange-500/10 hover:border-orange-500 group transition-all">
+<span class="material-symbols-outlined group-hover:text-orange-500">visibility</span>
+</button>
+<button class="flex-1 bg-surface-container-highest border border-outline-variant text-on-surface font-bold px-4 py-2 rounded-lg text-sm hover:bg-surface-variant">
+                            Manage Stock
+                        </button>
+</div>
+</div>
+</div>
+<!-- Warehouse Card 03 - Stable -->
+<div class="bg-surface-container-low border border-outline-variant rounded-xl overflow-hidden hover:border-tertiary/50 transition-colors relative group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-tertiary-container"></div>
+<div class="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+<div class="lg:col-span-3">
+<div class="flex items-center justify-between mb-1">
+<span class="text-data-mono font-data-mono text-on-surface-variant text-xs tracking-tighter">WH-SOUTH-119</span>
+<span class="text-data-mono font-data-mono text-on-surface-variant text-[10px]">Updated: 1h ago</span>
+</div>
+<h3 class="text-headline-md font-headline-md text-on-surface leading-tight">Southern Supply Point</h3>
+<p class="text-label-caps font-label-caps text-on-surface-variant mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">location_on</span> Adana Port
+                        </p>
+</div>
+<div class="lg:col-span-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-label-caps text-on-surface-variant uppercase">
+<span>Water</span>
+<span>95%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-tertiary-container status-bar-fill" style="width: 95%"></div>
+</div>
+<span class="text-data-mono font-data-mono text-[11px] text-tertiary">ADEQUATE</span>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-label-caps text-on-surface-variant uppercase">
+<span>Food</span>
+<span>88%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-tertiary-container status-bar-fill" style="width: 88%"></div>
+</div>
+<span class="text-data-mono font-data-mono text-[11px] text-tertiary">ADEQUATE</span>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-label-caps text-on-surface-variant uppercase">
+<span>Medical</span>
+<span>92%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-tertiary-container status-bar-fill" style="width: 92%"></div>
+</div>
+<span class="text-data-mono font-data-mono text-[11px] text-tertiary">ADEQUATE</span>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-label-caps text-on-surface-variant uppercase">
+<span>Shelter</span>
+<span>99%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-tertiary-container status-bar-fill" style="width: 99%"></div>
+</div>
+<span class="text-data-mono font-data-mono text-[11px] text-tertiary">ADEQUATE</span>
+</div>
+</div>
+<div class="lg:col-span-3 flex justify-end gap-2">
+<button class="p-3 bg-surface-container-highest border border-outline-variant rounded-lg hover:bg-tertiary/10 hover:border-tertiary group transition-all">
+<span class="material-symbols-outlined group-hover:text-tertiary">visibility</span>
+</button>
+<button class="flex-1 bg-surface-container-highest border border-outline-variant text-on-surface font-bold px-4 py-2 rounded-lg text-sm hover:bg-surface-variant">
+                            Manage Stock
+                        </button>
+</div>
+</div>
+</div>
+</div>
+<!-- System Intelligence Bento Row (Utility Aesthetic) -->
+<div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-surface-container-high p-6 rounded-xl border border-outline-variant flex flex-col justify-between h-48 overflow-hidden relative">
+<div class="relative z-10">
+<h4 class="text-label-caps font-label-caps text-on-surface-variant">Active Transfers</h4>
+<p class="text-display-lg font-display-lg mt-2">14</p>
+<p class="text-tertiary text-xs font-data-mono mt-1">+2 inbound from HQ</p>
+</div>
+<div class="absolute -right-4 -bottom-4 opacity-10">
+<span class="material-symbols-outlined text-9xl">local_shipping</span>
+</div>
+</div>
+<div class="bg-surface-container-high p-6 rounded-xl border border-outline-variant flex flex-col justify-between h-48 overflow-hidden relative">
+<div class="relative z-10">
+<h4 class="text-label-caps font-label-caps text-on-surface-variant">Predicted Burn Rate</h4>
+<p class="text-display-lg font-display-lg mt-2 text-primary">0.8x</p>
+<p class="text-on-surface-variant text-xs font-data-mono mt-1">Accelerating in Sector 7</p>
+</div>
+<div class="absolute -right-4 -bottom-4 opacity-10">
+<span class="material-symbols-outlined text-9xl">trending_up</span>
+</div>
+</div>
+<div class="bg-surface-container-high p-6 rounded-xl border border-outline-variant flex flex-col justify-between h-48 overflow-hidden relative">
+<div class="relative z-10">
+<h4 class="text-label-caps font-label-caps text-on-surface-variant">Network Status</h4>
+<p class="text-display-lg font-display-lg mt-2 text-tertiary">99.8%</p>
+<p class="text-on-surface-variant text-xs font-data-mono mt-1">All sensors reporting live</p>
+</div>
+<div class="absolute -right-4 -bottom-4 opacity-10">
+<span class="material-symbols-outlined text-9xl">radar</span>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-margin-mobile py-2 bg-surface border-t border-outline-variant">
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:text-primary transition-colors transition-transform active:scale-95" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="text-label-caps font-label-caps mt-1">Live Map</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:text-primary transition-colors transition-transform active:scale-95" href="#">
+<span class="material-symbols-outlined">emergency</span>
+<span class="text-label-caps font-label-caps mt-1">Report</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:text-primary transition-colors transition-transform active:scale-95" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-label-caps font-label-caps mt-1">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-1 transition-transform active:scale-95" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+<span class="text-label-caps font-label-caps mt-1">Inventory</span>
+</a>
+</nav>
+<script>
+        // Simple logic to simulate "live" inventory updates
+        setInterval(() => {
+            const bars = document.querySelectorAll('.status-bar-fill');
+            const randomBar = bars[Math.floor(Math.random() * bars.length)];
+            const currentWidth = parseInt(randomBar.style.width);
+            const drift = (Math.random() - 0.5) * 4;
+            const newWidth = Math.max(5, Math.min(100, currentWidth + drift));
+            randomBar.style.width = newWidth + '%';
+        }, 3000);
+    </script>
+</body></html>

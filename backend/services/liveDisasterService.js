@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import { haversineDistance } from '../utils/geo.js';
 
 /**
  * Live Disaster Service
@@ -283,15 +284,7 @@ class LiveDisasterService {
 
     // Helper: Calculate distance between two points (Haversine formula)
     calculateDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371; // Earth's radius in km
-        const dLat = this.toRad(lat2 - lat1);
-        const dLon = this.toRad(lon2 - lon1);
-        const a = 
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
+        return haversineDistance(lat1, lon1, lat2, lon2);
     }
 
     toRad(deg) {

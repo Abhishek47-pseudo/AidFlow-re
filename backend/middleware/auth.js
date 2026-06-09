@@ -29,9 +29,18 @@ const protect = async (req, res, next) => {
 // Middleware for role-based authorization
 const authorize = (...roles) => {
     return (req, res, next) => {
-        if (!req.user || !roles.includes(req.user.role)) {
+        if (!req.user || !req.user.roles || !req.user.roles.some(role => roles.includes(role))) {
             return res.status(403).json({ message: 'Forbidden: You do not have access to this route' });
         }
+
+        // If user is accessing an Admin role feature, require verification
+        const requiresAdmin = roles.some(r => ['Super Admin', 'Branch Manager', 'Admin'].includes(r));
+        const userAttemptingAdmin = req.user.userClass === 'Admin' && req.user.roles.some(r => roles.includes(r));
+        
+        if (requiresAdmin && userAttemptingAdmin && req.user.verification?.status !== 'Verified') {
+            return res.status(403).json({ message: 'Forbidden: Admin account is pending verification' });
+        }
+        
         next();
     };
 };

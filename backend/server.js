@@ -1,7 +1,9 @@
+import dotenv from "dotenv";
+dotenv.config(); // ⚠️ Must be FIRST — loads .env before any other module reads process.env
+
 import express from "express";
 import cors from "cors";
 import csv from "csvtojson";
-import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from 'url';
@@ -20,8 +22,6 @@ import dataManagementRoutes from './routes/dataManagement.js';
 import { protect, authorize } from './middleware/auth.js'; // Import auth middleware
 // -----------------------------
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -29,7 +29,8 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // ----------------- CONFIGURATION -----------------
 const CSV_FILE_PATH = path.join(__dirname, 'data', 'predictions_with_coords.csv');
@@ -60,42 +61,49 @@ app.post("/api/register", async (req, res) => {
       companyType, 
       occupation, 
       volunteerSkills,
-      role // Role from request body
+      roles, // Array of requested roles
+      verificationDetails
     } = req.body;
 
     // Validate required fields
-    if (!username || !password || !firstName || !lastName || !country || !state || !city || !address) {
-      return res.status(400).json({ message: "Missing required fields." });
+    if (!username || !password || !firstName || !lastName || !country || !state || !city || !address || !roles || !Array.isArray(roles) || roles.length === 0) {
+      return res.status(400).json({ message: "Missing required fields or roles array." });
     }
 
-    // Check if user already exists
     const userExists = await User.findOne({ username });
     if (userExists) {
       return res.status(400).json({ message: "User already exists with this username." });
     }
 
-    // RBAC: Only allow public registration for 'volunteer' and 'refugee'
-    // Admin and Branch Manager roles must be created by administrators
-    const allowedPublicRoles = ['volunteer', 'refugee'];
-    let userRole = role ? role.toLowerCase().trim() : 'volunteer'; // Default to volunteer
+    const adminRoles = ['Super Admin', 'Branch Manager', 'Admin'];
+    const generalRoles = ['Victim', 'Volunteer', 'Donor', 'Reporter', 'Community Member'];
+
+    let userClass = 'General User';
+    let verificationStatus = 'None';
     
-    // Validate role against allowed public roles
-    if (!allowedPublicRoles.includes(userRole)) {
-      console.warn(`⚠️ Attempted registration with restricted role: ${userRole}`);
-      return res.status(403).json({ 
-        message: `Role '${userRole}' cannot be registered publicly. Only 'volunteer' and 'refugee' roles are available for public registration.` 
-      });
+    // Check if they are requesting any admin roles
+    const hasAdminRole = roles.some(r => adminRoles.includes(r));
+    const hasGeneralRole = roles.some(r => generalRoles.includes(r));
+
+    if (hasAdminRole && hasGeneralRole) {
+      return res.status(400).json({ message: "Cannot mix Admin and General User roles." });
     }
 
-    // Validate role against User model enum (extra safety check)
-    const validRoles = ['admin', 'branch manager', 'volunteer', 'refugee'];
-    if (!validRoles.includes(userRole)) {
-      return res.status(400).json({ 
-        message: `Invalid role '${userRole}'. Valid roles are: ${validRoles.join(', ')}` 
-      });
+    // Validate roles
+    const validRoles = hasAdminRole ? adminRoles : generalRoles;
+    const invalidRoles = roles.filter(r => !validRoles.includes(r));
+    if (invalidRoles.length > 0) {
+      return res.status(400).json({ message: `Invalid roles requested: ${invalidRoles.join(', ')}` });
     }
 
-    // Create user with validated role
+    if (hasAdminRole) {
+      userClass = 'Admin';
+      verificationStatus = 'Pending';
+      if (!verificationDetails) {
+        return res.status(400).json({ message: "Verification details are required for administrative roles." });
+      }
+    }
+
     const user = await User.create({
       username,
       password,
@@ -108,31 +116,41 @@ app.post("/api/register", async (req, res) => {
       companyType: companyType || 'Individual',
       occupation,
       volunteerSkills: volunteerSkills || [],
-      role: userRole, // Explicitly set validated role
+      userClass,
+      roles,
+      verification: {
+        status: verificationStatus,
+        details: verificationDetails || ''
+      },
+      roleAuditLog: [{
+        action: 'Requested',
+        role: roles.join(', '),
+        reason: 'Initial Registration'
+      }]
     });
 
     if (user) {
-      console.log(`✅ New user registered: ${user.username} (${user.role})`);
+      console.log(`✅ New user registered: ${user.username} (${user.userClass})`);
       res.status(201).json({
         _id: user._id,
         username: user.username,
-        role: user.role,
-        message: "Registration successful!",
-        token: generateToken(user._id, user.role),
+        userClass: user.userClass,
+        roles: user.roles,
+        verificationStatus: user.verification.status,
+        message: hasAdminRole ? "Registration successful! Awaiting admin verification." : "Registration successful!",
+        token: generateToken(user._id, user.userClass),
       });
     } else {
       res.status(400).json({ message: "Invalid user data received." });
     }
 
   } catch (err) {
-    // Handle Mongoose validation errors
     if (err.name === 'ValidationError') {
       const errors = Object.values(err.errors || {}).map(e => e.message).join('; ');
       console.error("❌ Registration Validation Error:", errors);
       return res.status(400).json({ message: errors || "Validation error during registration." });
     }
     
-    // Handle duplicate key errors
     if (err.code === 11000) {
       console.error("❌ Registration Error: Duplicate username");
       return res.status(400).json({ message: "Username already exists." });
@@ -154,8 +172,10 @@ app.post("/api/login", async (req, res) => {
       res.json({
         _id: user._id,
         username: user.username,
-        role: user.role,
-        token: generateToken(user._id, user.role),
+        userClass: user.userClass,
+        roles: user.roles,
+        verificationStatus: user.verification.status,
+        token: generateToken(user._id, user.userClass),
       });
     } else {
       res.status(401).json({ message: "Invalid username or password" });
@@ -163,6 +183,71 @@ app.post("/api/login", async (req, res) => {
   } catch (err) {
     console.error("❌ Login Error:", err.message);
     res.status(500).json({ message: "Server error during login." });
+  }
+});
+
+// **********************************************
+// ********** ADMIN VERIFICATION APIS ***********
+// **********************************************
+
+// Get pending admin verifications
+app.get("/api/admin/pending-verifications", protect, authorize('Super Admin'), async (req, res) => {
+  try {
+    const users = await User.find({ "verification.status": "Pending" }).select('-password');
+    res.json(users);
+  } catch (err) {
+    console.error("❌ Error fetching pending verifications:", err.message);
+    res.status(500).json({ error: "Failed to fetch verifications." });
+  }
+});
+
+// Approve or reject admin application
+app.put("/api/admin/verify/:id", protect, authorize('Super Admin'), async (req, res) => {
+  try {
+    const { status } = req.body; // 'Verified' or 'Rejected'
+    if (!['Verified', 'Rejected'].includes(status)) {
+      return res.status(400).json({ message: "Invalid status." });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    user.verification.status = status;
+    user.roleAuditLog.push({
+      action: status === 'Verified' ? 'Granted' : 'Rejected',
+      role: user.roles.join(', '),
+      changedBy: req.user._id,
+      reason: `Verification application ${status.toLowerCase()}`
+    });
+
+    await user.save();
+    res.json({ message: `User successfully ${status.toLowerCase()}.`, user });
+  } catch (err) {
+    console.error("❌ Verification Error:", err.message);
+    res.status(500).json({ error: "Failed to verify user." });
+  }
+});
+
+// Modify roles dynamically
+app.put("/api/admin/user/:id/roles", protect, authorize('Super Admin', 'Admin'), async (req, res) => {
+  try {
+    const { newRoles } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    user.roles = newRoles;
+    user.roleAuditLog.push({
+      action: 'Modified',
+      role: newRoles.join(', '),
+      changedBy: req.user._id,
+      reason: 'Admin modified roles'
+    });
+
+    await user.save();
+    res.json({ message: "Roles updated successfully.", user });
+  } catch (err) {
+    console.error("❌ Role Update Error:", err.message);
+    res.status(500).json({ error: "Failed to update roles." });
   }
 });
 
@@ -186,7 +271,7 @@ app.get("/api/inventory/items", protect, async (req, res) => {
   }
 });
 // Volunteer donates an item
-app.post("/api/volunteer/donate", protect, authorize('volunteer', 'admin'), async (req, res) => {
+app.post("/api/volunteer/donate", protect, authorize('Volunteer', 'Super Admin', 'Admin'), async (req, res) => {
     try {
       const { itemName, category, quantity, location } = req.body;
       
@@ -209,7 +294,7 @@ app.post("/api/volunteer/donate", protect, authorize('volunteer', 'admin'), asyn
   });
   
   // Fetch all donations for this volunteer
-  app.get("/api/volunteer/donations", protect, authorize('volunteer', 'admin'), async (req, res) => {
+  app.get("/api/volunteer/donations", protect, authorize('Volunteer', 'Super Admin', 'Admin'), async (req, res) => {
     try {
       // Use authenticated user's ID
       const volunteerId = req.user._id;
@@ -221,7 +306,7 @@ app.post("/api/volunteer/donate", protect, authorize('volunteer', 'admin'), asyn
     }
   });
   // Request items
-app.post("/api/requester/request", protect, authorize('affected citizen', 'admin'), async (req, res) => {
+app.post("/api/requester/request", protect, authorize('Victim', 'Super Admin', 'Admin', 'Branch Manager'), async (req, res) => {
     try {
       const { itemName, category, quantity, location, priority } = req.body;
       
@@ -245,7 +330,7 @@ app.post("/api/requester/request", protect, authorize('affected citizen', 'admin
   });
   
   // Fetch all requests for this user
-  app.get("/api/requester/requests", protect, authorize('affected citizen', 'admin'), async (req, res) => {
+  app.get("/api/requester/requests", protect, authorize('Victim', 'Super Admin', 'Admin', 'Branch Manager'), async (req, res) => {
     try {
       // Use authenticated user's ID
       const requesterId = req.user._id;
@@ -258,7 +343,7 @@ app.post("/api/requester/request", protect, authorize('affected citizen', 'admin
   });
 
   // User marks their own request as fulfilled
-  app.put("/api/requester/fulfill/:id", protect, authorize('affected citizen'), async (req, res) => {
+  app.put("/api/requester/fulfill/:id", protect, authorize('Victim'), async (req, res) => {
     try {
       const requestId = req.params.id;
       const { notes } = req.body;
@@ -290,7 +375,7 @@ app.post("/api/requester/request", protect, authorize('affected citizen', 'admin
     }
   });
 // Approve or reject a donation
-app.put("/api/admin/donation/:id", protect, authorize('admin', 'branch manager'), async (req, res) => {
+app.put("/api/admin/donation/:id", protect, authorize('Super Admin', 'Admin', 'Branch Manager'), async (req, res) => {
     try {
       const { status, approvedBy } = req.body;
       const donation = await Donation.findByIdAndUpdate(
@@ -316,7 +401,7 @@ app.put("/api/admin/donation/:id", protect, authorize('admin', 'branch manager')
   });
   
   // Get all requests for admin/branch manager dashboard
-  app.get("/api/admin/requests", protect, authorize('admin', 'branch manager'), async (req, res) => {
+  app.get("/api/admin/requests", protect, authorize('Super Admin', 'Admin', 'Branch Manager'), async (req, res) => {
     try {
       const requests = await Request.find({})
         .populate('requesterId', 'username firstName lastName role')
@@ -329,7 +414,7 @@ app.put("/api/admin/donation/:id", protect, authorize('admin', 'branch manager')
   });
 
   // Update request status (branch manager can update, user can mark as fulfilled)
-  app.put("/api/admin/request/:id", protect, authorize('admin', 'branch manager', 'affected citizen'), async (req, res) => {
+  app.put("/api/admin/request/:id", protect, authorize('Super Admin', 'Admin', 'Branch Manager', 'Victim'), async (req, res) => {
     try {
       const { status, notes } = req.body;
       const requestId = req.params.id;
@@ -341,7 +426,7 @@ app.put("/api/admin/donation/:id", protect, authorize('admin', 'branch manager')
       }
 
       // Role-based permission check
-      if (req.user.role === 'affected citizen') {
+      if (req.user.userClass === 'General User') {
         // Users can only update their own requests and only mark as fulfilled
         if (currentRequest.requesterId.toString() !== req.user._id.toString()) {
           return res.status(403).json({ error: "You can only update your own requests." });
@@ -375,7 +460,7 @@ app.put("/api/admin/donation/:id", protect, authorize('admin', 'branch manager')
   });
 
   // Delete request (admin only)
-  app.delete("/api/admin/request/:id", protect, authorize('admin'), async (req, res) => {
+  app.delete("/api/admin/request/:id", protect, authorize('Super Admin', 'Admin'), async (req, res) => {
     try {
       const request = await Request.findByIdAndDelete(req.params.id);
       if (!request) {

@@ -15,9 +15,11 @@ class NLPEngine {
         
         this.apiKey = process.env.HUGGINGFACE_API_KEY || 'hf_demo_key';
         
-        // In-memory cache for recent messages to reduce latency and API cost
+        // In-memory cache for recent messages to reduce latency and API cost.
+        // Entries expire after CACHE_TTL to prevent stale analysis of evolving situations.
         this.cache = new Map();
         this.maxCacheSize = 100;
+        this.CACHE_TTL = 10 * 60 * 1000; // 10 minutes
         
         // Fallback rule-based patterns for offline mode
         this.fallbackPatterns = {
@@ -111,15 +113,11 @@ class NLPEngine {
     async analyzeEmergencyText(message) {
         console.log('🧠 Starting advanced NLP analysis...');
         
-        // Check cache first
+        // Check cache first (with TTL — stale entries are ignored)
         const cached = this.cache.get(message);
-        if (cached) {
+        if (cached && Date.now() - cached.cachedAt < this.CACHE_TTL) {
             console.log('🧠 NLP cache hit for message.');
-            // Return cached result with 0ms updated processingTime
-            return {
-                ...cached,
-                processingTime: 0
-            };
+            return { ...cached, processingTime: 0 };
         }
 
         const analysis = {
@@ -169,12 +167,12 @@ class NLPEngine {
             
             console.log(`✅ NLP analysis complete in ${analysis.processingTime}ms`);
 
-            // Save to cache
+            // Save to cache with a timestamp for TTL validation
             if (this.cache.size >= this.maxCacheSize) {
                 const firstKey = this.cache.keys().next().value;
                 this.cache.delete(firstKey);
             }
-            this.cache.set(message, analysis);
+            this.cache.set(message, { ...analysis, cachedAt: Date.now() });
 
             return analysis;
 

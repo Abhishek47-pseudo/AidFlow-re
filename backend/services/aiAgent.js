@@ -2,6 +2,7 @@ import fetch from 'node-fetch';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { haversineDistance } from '../utils/geo.js';
 import NLPEngine from './nlpEngine.js';
 import ImageDisasterDetectionAgent from './imageDisasterDetection.js';
 import SmartRoutingAgent from './smartRouting.js';
@@ -224,26 +225,9 @@ class EmergencyAIAgent {
         return resourcePlan;
     }
 
-    /**
-     * Generate optimal routing plan
-     */
-    async generateOptimalRoute(emergencyData, resourcePlan) {
-        // This would integrate with your existing smart routing system
-        const routingPlan = {
-            origin: 'nearest_warehouse', // This should be determined by inventory location
-            destination: { lat: emergencyData.lat, lon: emergencyData.lon },
-            route: [],
-            distance: 0,
-            eta: '15-30 minutes', // This should be calculated
-            vehicles: [],
-            waypoints: []
-        };
-
-        // Simulate route optimization (integrate with your existing routing model)
-        routingPlan.route = await this.calculateOptimalRoute(emergencyData.lat, emergencyData.lon);
-        
-        return routingPlan;
-    }
+    // generateOptimalRoute removed — it called this.calculateOptimalRoute() which doesn't
+    // exist on this class (live bug). Route planning is correctly delegated to
+    // agent3_routing.calculateOptimalRoute() inside processEmergencyRequest().
 
     // Helper methods
     parseFireData(csvText) {
@@ -738,14 +722,7 @@ class EmergencyAIAgent {
 
     // Helper methods for route AI
     calculateDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371; // Earth's radius in km
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return R * c;
+        return haversineDistance(lat1, lon1, lat2, lon2);
     }
 
     estimateTraffic(hour) {

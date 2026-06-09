@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AidFlow | Emergency Request</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-fixed": "#00174b",
+                    "on-primary-container": "#fff6f5",
+                    "on-error": "#690005",
+                    "background": "#0F172A",
+                    "on-tertiary-fixed-variant": "#005320",
+                    "primary": "#ffb4ab",
+                    "on-tertiary-container": "#e7ffe4",
+                    "surface-container-lowest": "#190a08",
+                    "inverse-surface": "#fbdbd7",
+                    "surface-container-high": "#382523",
+                    "secondary-fixed-dim": "#b4c5ff",
+                    "tertiary-fixed-dim": "#62df7d",
+                    "primary-container": "#dc2626",
+                    "tertiary": "#62df7d",
+                    "outline-variant": "#5c403c",
+                    "surface-container": "#1E293B",
+                    "surface-variant": "#334155",
+                    "inverse-primary": "#bf0715",
+                    "surface-container-low": "#281715",
+                    "outline": "#ac8884",
+                    "on-secondary-container": "#cdd7ff",
+                    "on-tertiary-fixed": "#002109",
+                    "on-primary-fixed": "#410002",
+                    "surface": "#0F172A",
+                    "surface-dim": "#0F172A",
+                    "primary-fixed-dim": "#ffb4ab",
+                    "on-secondary-fixed-variant": "#003ea8",
+                    "surface-tint": "#ffb4ab",
+                    "surface-container-highest": "#44302e",
+                    "on-surface-variant": "#e6bdb8",
+                    "on-error-container": "#ffdad6",
+                    "tertiary-fixed": "#7ffc97",
+                    "on-background": "#fbdbd7",
+                    "secondary": "#b4c5ff",
+                    "on-primary-fixed-variant": "#93000b",
+                    "tertiary-container": "#008438",
+                    "inverse-on-surface": "#3f2c29",
+                    "error-container": "#93000a",
+                    "primary-fixed": "#ffdad6",
+                    "secondary-container": "#0053db",
+                    "on-primary": "#690005",
+                    "on-secondary": "#002a78",
+                    "on-tertiary": "#003914",
+                    "secondary-fixed": "#dbe1ff",
+                    "on-surface": "#fbdbd7",
+                    "surface-bright": "#493432",
+                    "error": "#ffb4ab"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "margin-mobile": "16px",
+                    "gutter": "16px",
+                    "unit": "4px",
+                    "margin-desktop": "32px",
+                    "container-max": "1440px"
+            },
+            "fontFamily": {
+                    "display-lg": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "body-md": ["Inter"],
+                    "data-mono": ["JetBrains Mono"],
+                    "headline-lg": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "headline-md": ["Inter"]
+            },
+            "fontSize": {
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "data-mono": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .step-inactive { display: none; }
+        .glass-overlay { backdrop-filter: blur(12px); background-color: rgba(15, 23, 42, 0.8); }
+        .scanning-line {
+            height: 2px;
+            background: #ffb4ab;
+            position: absolute;
+            width: 100%;
+            top: 0;
+            animation: scan 3s linear infinite;
+        }
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+        .active-tab-nav {
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #dc2626; /* primary-container */
+            color: #fff6f5; /* on-primary-container */
+            border-radius: 0.5rem; /* xl mapping */
+            padding: 0.25rem 1rem;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body-md antialiased overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-mobile h-16 bg-surface border-b border-outline-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">wifi</span>
+<span class="text-headline-md font-headline-md font-bold text-primary">AidFlow</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-label-caps font-label-caps text-primary">OPERATIONAL</span>
+<span class="material-symbols-outlined text-primary">notifications_active</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-16 pb-24 min-h-screen max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
+<!-- Stepper Indicator -->
+<nav class="flex justify-between items-center py-6 mb-4 max-w-xl mx-auto">
+<div class="flex flex-col items-center gap-1">
+<div class="w-8 h-8 rounded-full border-2 border-primary flex items-center justify-center bg-primary text-on-primary" id="step-dot-1">1</div>
+<span class="text-label-caps font-label-caps opacity-60">Location</span>
+</div>
+<div class="h-px flex-1 bg-outline-variant mx-2 mb-6"></div>
+<div class="flex flex-col items-center gap-1">
+<div class="w-8 h-8 rounded-full border-2 border-outline-variant flex items-center justify-center" id="step-dot-2">2</div>
+<span class="text-label-caps font-label-caps opacity-60">Type</span>
+</div>
+<div class="h-px flex-1 bg-outline-variant mx-2 mb-6"></div>
+<div class="flex flex-col items-center gap-1">
+<div class="w-8 h-8 rounded-full border-2 border-outline-variant flex items-center justify-center" id="step-dot-3">3</div>
+<span class="text-label-caps font-label-caps opacity-60">Visuals</span>
+</div>
+<div class="h-px flex-1 bg-outline-variant mx-2 mb-6"></div>
+<div class="flex flex-col items-center gap-1">
+<div class="w-8 h-8 rounded-full border-2 border-outline-variant flex items-center justify-center" id="step-dot-4">4</div>
+<span class="text-label-caps font-label-caps opacity-60">Review</span>
+</div>
+</nav>
+<!-- Multi-Step Form Container -->
+<div class="max-w-2xl mx-auto space-y-6">
+<!-- Step 1: Map Location -->
+<section class="space-y-4" id="step-1">
+<h1 class="text-headline-lg-mobile md:text-headline-lg font-headline-lg text-primary">Select Emergency Location</h1>
+<p class="text-on-surface-variant">Identify the exact coordinates of the disaster area.</p>
+<div class="relative w-full h-[400px] rounded-xl overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover grayscale opacity-60" data-alt="A detailed digital tactical map display in dark mode, showing a high-contrast satellite view of an urban coastal city. The map features various glowing data overlays including heat maps, topographic lines, and tactical grid systems in shades of slate blue and charcoal. A prominent red pulsating target reticle is centered on a specific city block, signifying an emergency incident point. The overall mood is high-stakes and technologically sophisticated." data-location="Tokyo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0ANI0hasptPsiph4oCgwK1LO7O3mUKX_iBoHz8PXzQHCK9CqjuE9aSZsvPgPiR82g7zAs3CoJf5qLNUv5nNnFVHd5PNJZE_QtORaIq7iNf5S4MDozo82BRCPL8BGg7VBi3-GZjEqz1rGHrFuEwFMy8L7KTYSAya_Ochc3xRCqcKIMVtCvmZJdn6WIn_f08avGKuAtLiK3hOvuzzt_URpsAVYC2Qa9G5c2XH-25yYOpxA4iJ0YfpXh2xlzujJHZMOCd6T6OT5HLCU"/>
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+<div class="w-12 h-12 rounded-full border-4 border-primary-container animate-ping"></div>
+<span class="material-symbols-outlined text-primary-container text-4xl absolute" style="font-variation-settings: 'FILL' 1;">location_on</span>
+</div>
+<div class="absolute bottom-4 left-4 glass-overlay p-3 rounded border border-surface-variant flex flex-col">
+<span class="text-data-mono font-data-mono text-primary">LAT: 35.6762° N</span>
+<span class="text-data-mono font-data-mono text-primary">LNG: 139.6503° E</span>
+</div>
+</div>
+<button class="w-full py-4 bg-primary text-on-primary font-bold rounded-xl active:scale-95 transition-transform" onclick="nextStep(2)">CONFIRM LOCATION</button>
+</section>
+<!-- Step 2: Disaster Type & Description -->
+<section class="step-inactive space-y-4" id="step-2">
+<h1 class="text-headline-lg-mobile md:text-headline-lg font-headline-lg text-primary">Incident Details</h1>
+<div class="grid grid-cols-2 gap-4">
+<button class="flex flex-col items-center gap-2 p-4 border border-outline-variant rounded-xl hover:bg-surface-variant transition-colors group">
+<span class="material-symbols-outlined text-3xl group-hover:text-primary">flood</span>
+<span class="text-label-caps font-label-caps">Flood</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-4 border border-outline-variant rounded-xl hover:bg-surface-variant transition-colors group border-primary ring-1 ring-primary">
+<span class="material-symbols-outlined text-3xl text-primary" style="font-variation-settings: 'FILL' 1;">fire_truck</span>
+<span class="text-label-caps font-label-caps text-primary">Wildfire</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-4 border border-outline-variant rounded-xl hover:bg-surface-variant transition-colors group">
+<span class="material-symbols-outlined text-3xl group-hover:text-primary">earthquake</span>
+<span class="text-label-caps font-label-caps">Earthquake</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-4 border border-outline-variant rounded-xl hover:bg-surface-variant transition-colors group">
+<span class="material-symbols-outlined text-3xl group-hover:text-primary">storm</span>
+<span class="text-label-caps font-label-caps">Severe Storm</span>
+</button>
+</div>
+<div class="space-y-2">
+<label class="text-label-caps font-label-caps opacity-80">SITUATION REPORT (SITREP)</label>
+<textarea class="w-full bg-surface border border-outline-variant rounded-xl p-4 focus:ring-2 focus:ring-primary focus:border-transparent outline-none placeholder:text-on-surface-variant/40" placeholder="Describe the current situation, estimated victims, and immediate needs..." rows="4"></textarea>
+</div>
+<div class="flex gap-4">
+<button class="flex-1 py-4 border border-outline-variant text-on-surface font-bold rounded-xl active:scale-95 transition-transform" onclick="nextStep(1)">BACK</button>
+<button class="flex-[2] py-4 bg-primary text-on-primary font-bold rounded-xl active:scale-95 transition-transform" onclick="nextStep(3)">NEXT: CAPTURE MEDIA</button>
+</div>
+</section>
+<!-- Step 3: Image Upload & AI Detection -->
+<section class="step-inactive space-y-4" id="step-3">
+<h1 class="text-headline-lg-mobile md:text-headline-lg font-headline-lg text-primary">Visual Assessment</h1>
+<div class="relative w-full aspect-video rounded-xl border-2 border-dashed border-outline-variant flex flex-col items-center justify-center gap-2 bg-surface-container overflow-hidden" id="upload-zone">
+<img class="absolute inset-0 w-full h-full object-cover hidden" data-alt="A cinematic, low-angle shot of a dense forest during a massive wildfire at dusk. Intense orange and red flames engulf dark silhouettes of pine trees, sending plumes of thick grey smoke into a darkening blue sky. The lighting is dominated by the inferno's fierce glow, creating a dramatic, high-contrast scene. The style is gritty and realistic, emphasizing the urgent environmental crisis and the raw power of nature in chaos." id="preview-image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtjoCyuzDw_qevLH19PDJECyR3RnPerjomv7qYBZoUEqA0PUb6QVDqSy7sIx5m8gS3Z0AZOVEZa55legjF2zWFM88OWJZcoDMjYUvZss-2KvQSUxItVHS4YUbTzLAHAP_Faw_hrKR6CmimwrtaLF7DfMGnCdKWmiYLa77lwgTHgvAD4B1PCDnfX_Mh41f4e7spjV6cXWFoLFtklDHC_aEqdakJCND1YlsyNTfx1nPB7SHTu7ODnEnRFJvuDw5Vl4bpeIIjYevNZ4g"/>
+<div class="absolute inset-0 hidden" id="ai-scanner">
+<div class="scanning-line"></div>
+<div class="absolute top-4 left-4 glass-overlay p-2 rounded text-data-mono text-primary text-xs border border-primary/40">
+                            ANALYZING PIXEL DATA...
+                        </div>
+<div class="absolute bottom-10 right-10 bg-primary-container text-on-primary-container px-3 py-1 rounded-full text-label-caps font-label-caps flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">verified</span> FIRE DETECTED 98.4%
+                        </div>
+</div>
+<div class="flex flex-col items-center" id="upload-placeholder">
+<span class="material-symbols-outlined text-4xl text-outline mb-2">add_a_photo</span>
+<span class="text-label-caps font-label-caps">Upload or Take Photo</span>
+<span class="text-[10px] text-on-surface-variant opacity-60">AI will automatically analyze the threat level</span>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-2" id="ai-tags">
+<div class="bg-surface-variant p-2 rounded flex flex-col items-center border border-outline-variant">
+<span class="text-data-mono text-[10px] opacity-60">Threat</span>
+<span class="text-label-caps font-bold text-error">CRITICAL</span>
+</div>
+<div class="bg-surface-variant p-2 rounded flex flex-col items-center border border-outline-variant">
+<span class="text-data-mono text-[10px] opacity-60">Confidence</span>
+<span class="text-label-caps font-bold text-tertiary">HIGH</span>
+</div>
+<div class="bg-surface-variant p-2 rounded flex flex-col items-center border border-outline-variant">
+<span class="text-data-mono text-[10px] opacity-60">AI Model</span>
+<span class="text-label-caps font-bold">V-NET 4.0</span>
+</div>
+</div>
+<div class="flex gap-4">
+<button class="flex-1 py-4 border border-outline-variant text-on-surface font-bold rounded-xl" onclick="nextStep(2)">BACK</button>
+<button class="flex-[2] py-4 bg-tertiary-container text-on-tertiary-container font-bold rounded-xl active:scale-95 transition-transform" id="ai-trigger" onclick="simulateAI()">RUN AI DETECTION</button>
+<button class="hidden flex-[2] py-4 bg-primary text-on-primary font-bold rounded-xl active:scale-95 transition-transform" id="next-review" onclick="nextStep(4)">REVIEW SUMMARY</button>
+</div>
+</section>
+<!-- Step 4: Urgency/Sentiment analysis preview -->
+<section class="step-inactive space-y-6" id="step-4">
+<div class="p-6 border-2 border-primary-container rounded-xl bg-surface-container-high space-y-4">
+<div class="flex justify-between items-start">
+<h1 class="text-headline-lg-mobile font-headline-lg text-primary">Emergency Summary</h1>
+<span class="px-3 py-1 bg-error-container text-on-error-container text-label-caps font-label-caps rounded-full border border-error">SEVERITY: CRITICAL</span>
+</div>
+<div class="space-y-4">
+<div class="flex items-center gap-4">
+<div class="w-16 h-16 rounded bg-surface border border-outline-variant overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A small, focused thumbnail crop of a wildfire, showing intense orange glowing embers and sharp silhouettes of charred wood. The image emphasizes the high-contrast heat and destructive power of the disaster through a tight, macro-like perspective. The lighting is dominated by fire-orange and deep soot-black, fitting the urgent, modern-utility emergency interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjbc10UUSraOxdOADyvjD99SUYwKNUh4grVMkzptxyB6LQIrXr8Ly9UQ8_RIcHIeffi8H0iaCBpLhsP0CYhB6JS7xfqSCp_Fvy1Mb_tvrFIcB_r3S9uTkco_lehrcHc1U8k2PasRnobNOi95vK8PXFaWwwBlI4tNv91hsIixMj2xb1A0mRrP0BqrygbDBbq7NG2TEsZNvsupRJ6LluU9ElBYFXVxxkxX3hHM6bRsw9X7ImGozaXeF9vPlUyozt1FOpVyJpK8FvWEo"/>
+</div>
+<div class="flex-1">
+<span class="text-label-caps font-label-caps opacity-60 block">AI SENTIMENT ANALYSIS</span>
+<div class="w-full h-2 bg-surface-variant rounded-full mt-1 overflow-hidden">
+<div class="h-full bg-primary-container w-[88%]"></div>
+</div>
+<span class="text-data-mono text-xs text-primary mt-1 block">Urgency: 88% | Distress: High | Structural Damage: Likely</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 text-xs font-data-mono">
+<div class="p-3 border border-outline-variant rounded bg-surface">
+<span class="opacity-40 block mb-1">LOCATION</span>
+                                35.6762° N, 139.6503° E
+                            </div>
+<div class="p-3 border border-outline-variant rounded bg-surface">
+<span class="opacity-40 block mb-1">TYPE</span>
+                                Wildfire / Level 4
+                            </div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-3">
+<button class="w-full py-5 bg-primary-container text-on-primary-container font-bold text-lg rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-2xl shadow-primary-container/20">
+<span class="material-symbols-outlined">bolt</span>
+                        SUBMIT EMERGENCY
+                    </button>
+<button class="w-full py-3 border border-outline-variant text-on-surface-variant font-bold rounded-xl" onclick="nextStep(3)">EDIT DETAILS</button>
+</div>
+</section>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-margin-mobile py-2 bg-surface border-t border-outline-variant">
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">map</span>
+<span class="text-label-caps font-label-caps">Live Map</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-1">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">emergency</span>
+<span class="text-label-caps font-label-caps">Report</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-label-caps font-label-caps">Dashboard</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="text-label-caps font-label-caps">Inventory</span>
+</div>
+</nav>
+<script>
+        function nextStep(step) {
+            // Hide all steps
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`step-${i}`).classList.add('step-inactive');
+                
+                // Reset dots
+                const dot = document.getElementById(`step-dot-${i}`);
+                dot.classList.remove('bg-primary', 'text-on-primary', 'border-primary');
+                dot.classList.add('border-outline-variant');
+            }
+
+            // Show active step
+            document.getElementById(`step-${step}`).classList.remove('step-inactive');
+            
+            // Highlight current and previous dots
+            for (let i = 1; i <= step; i++) {
+                const dot = document.getElementById(`step-dot-${i}`);
+                dot.classList.remove('border-outline-variant');
+                dot.classList.add('border-primary');
+                if (i === step) {
+                    dot.classList.add('bg-primary', 'text-on-primary');
+                } else {
+                    dot.classList.add('bg-primary/20');
+                    dot.innerHTML = `<span class="material-symbols-outlined text-sm">check</span>`;
+                }
+            }
+            
+            // Reset text for active dot if navigating back
+            document.getElementById(`step-dot-${step}`).innerText = step;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function simulateAI() {
+            const btn = document.getElementById('ai-trigger');
+            const zone = document.getElementById('upload-zone');
+            const placeholder = document.getElementById('upload-placeholder');
+            const img = document.getElementById('preview-image');
+            const scanner = document.getElementById('ai-scanner');
+            const nextBtn = document.getElementById('next-review');
+
+            btn.disabled = true;
+            btn.innerText = "PROCESSING...";
+            
+            placeholder.classList.add('hidden');
+            img.classList.remove('hidden');
+            scanner.classList.remove('hidden');
+
+            setTimeout(() => {
+                scanner.classList.add('hidden');
+                btn.classList.add('hidden');
+                nextBtn.classList.remove('hidden');
+            }, 3000);
+        }
+    </script>
+</body></html>

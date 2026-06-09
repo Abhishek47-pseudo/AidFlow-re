@@ -382,9 +382,19 @@ router.post('/request-with-image', async (req, res) => {
         const detection = await imageAgent.detectDisasterFromImage(imageData, location);
 
         // 2. Map detection to schema format
-        const disasterType = detection.combinedAnalysis.disasterType !== 'normal'
+        let disasterType = detection.combinedAnalysis.disasterType !== 'normal'
             ? detection.combinedAnalysis.disasterType
             : 'unknown';
+
+        const typeMapping = {
+            'earthquake_damage': 'earthquake',
+            'storm_damage': 'storm',
+            'building_collapse': 'earthquake',
+            'infrastructure_damage': 'unknown'
+        };
+        if (typeMapping[disasterType]) {
+            disasterType = typeMapping[disasterType];
+        }
 
         const severity = detection.combinedAnalysis.severity;
         const confidence = detection.combinedAnalysis.confidence;

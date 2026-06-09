@@ -1,3 +1,5 @@
+import User from '../models/User.js';
+
 /**
  * Notification Service
  * Handles multi-channel notifications (SMS, Email, App)
@@ -10,17 +12,42 @@ class NotificationService {
     }
 
     /**
-     * Send an urgent alert (SMS + App)
+     * Send an urgent alert (SMS + App).
+     * @param {string|Object} userId - MongoDB ObjectId (string) or pre-resolved contact object
+     *   with { phone, email } fields.
      */
     async sendAlert(userId, message, context = {}) {
-        console.log(`🚨 ALERT to ${userId}: ${message}`);
+        console.log(`🚨 ALERT to user ${userId}: ${message}`);
+
+        // Resolve contact details from the DB so we don’t pass an ObjectId as a phone number.
+        const contact = await this.resolveContact(userId);
 
         await Promise.all([
-            this.sendSMS(userId, message),
+            contact.phone
+                ? this.sendSMS(contact.phone, message)
+                : Promise.resolve(console.warn(`⚠️  No phone number for user ${userId} — SMS skipped`)),
             this.sendAppNotification(userId, 'Emergency Alert', message, context)
         ]);
 
         return true;
+    }
+
+    /**
+     * Resolve a user’s contact details from the database.
+     * Returns { phone, email } or empty strings if not found.
+     */
+    async resolveContact(userId) {
+        try {
+            const user = await User.findById(userId).select('phone email').lean();
+            if (!user) {
+                console.warn(`⚠️  resolveContact: No user found for id ${userId}`);
+                return { phone: null, email: null };
+            }
+            return { phone: user.phone || null, email: user.email || null };
+        } catch (err) {
+            console.warn(`⚠️  resolveContact failed for ${userId}:`, err.message);
+            return { phone: null, email: null };
+        }
     }
 
     /**

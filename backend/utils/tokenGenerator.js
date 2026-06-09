@@ -12,13 +12,13 @@ dotenv.config();
  * @param {string} role - The user's role (viewer, manager, admin).
  * @returns {string} The generated JWT string.
  */
-const generateToken = (id, role) => {
+const generateToken = (id, userClass, roles) => {
     if (!process.env.JWT_SECRET) {
         throw new Error("JWT_SECRET is not defined in the .env file. Cannot generate token.");
     }
     
     return jwt.sign(
-        { id, role }, // Payload: User ID and Role
+        { id, userClass, roles }, // Payload: User ID, Class, and Roles
         process.env.JWT_SECRET, // Secret key from .env
         { expiresIn: process.env.JWT_EXPIRES_IN || '30d' } // Use configurable expiry or default
     );
