@@ -138,7 +138,7 @@ app.post("/api/register", async (req, res) => {
         roles: user.roles,
         verificationStatus: user.verification.status,
         message: hasAdminRole ? "Registration successful! Awaiting admin verification." : "Registration successful!",
-        token: generateToken(user._id, user.userClass),
+        token: generateToken(user._id, user.userClass, user.roles),
       });
     } else {
       res.status(400).json({ message: "Invalid user data received." });
@@ -175,7 +175,7 @@ app.post("/api/login", async (req, res) => {
         userClass: user.userClass,
         roles: user.roles,
         verificationStatus: user.verification.status,
-        token: generateToken(user._id, user.userClass),
+        token: generateToken(user._id, user.userClass, user.roles),
       });
     } else {
       res.status(401).json({ message: "Invalid username or password" });

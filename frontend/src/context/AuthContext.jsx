@@ -19,16 +19,24 @@ export const AuthProvider = ({ children }) => {
         if (decoded.exp < currentTime) {
           logout();
         } else {
+          const userRoles = decoded.roles || (decoded.role ? [
+            decoded.role === 'volunteer' ? 'Volunteer' :
+            decoded.role === 'admin' ? 'Super Admin' :
+            decoded.role === 'branch manager' ? 'Branch Manager' :
+            (decoded.role === 'refugee' || decoded.role === 'affected citizen') ? 'Victim' :
+            decoded.role
+          ] : []);
+
+          if (userRoles.length === 0) {
+            console.error('Invalid token format: Missing roles. Logging out.');
+            logout();
+            return;
+          }
+
           setUser({
             _id: decoded.id,
             userClass: decoded.userClass || 'General User',
-            roles: decoded.roles || (decoded.role ? [
-              decoded.role === 'volunteer' ? 'Volunteer' :
-              decoded.role === 'admin' ? 'Super Admin' :
-              decoded.role === 'branch manager' ? 'Branch Manager' :
-              (decoded.role === 'refugee' || decoded.role === 'affected citizen') ? 'Victim' :
-              decoded.role
-            ] : []),
+            roles: userRoles,
             username: decoded.username || ''
           });
           // Configure global axios header

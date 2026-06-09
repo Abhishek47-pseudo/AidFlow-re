@@ -1,3 +1,13 @@
+---
+title: AidFlow ML API
+emoji: 🚀
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # AidFlow: EfficientNet ML Inference Service
 
 This directory houses a standalone FastAPI-based Python microservice that loads the pre-trained `best_effnet_b3_multilabel.pth` model and runs image disaster detection.
